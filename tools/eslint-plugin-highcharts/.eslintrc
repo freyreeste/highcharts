@@ -6,6 +6,6 @@
     "rules": {
         "func-style": 0,
         "quotes": 0,
-        "max-len": "error"
+        "max-len": 2
     }
 }
