@@ -1150,6 +1150,7 @@ const startServer = () => {
 
 let apiServerRunning = false;
 
+
 /**
  * Create Highcharts API and class references from JSDOC
  */
@@ -1190,6 +1191,32 @@ const jsdoc = () => {
         .then(() => generateAPIDocs(optionsAPI));
 };
 
+
+/**
+ * Creates JSON-based declaration file. (experimental)
+ */
+function jsdocDeclarations() {
+    const codeFiles = JSON.parse(fs.readFileSync('tsconfig.json')).files
+            .filter(file => (
+                file.indexOf('test') !== 0 &&
+                file.indexOf('global.d.ts') === -1 &&
+                file.indexOf('.src.d.ts') === -1
+            ))
+            .map(file => file.replace(/.d.ts$/, '.src.js'));
+    /**
+    const codeFilesOptions = [codeFiles, { read: false }];
+    const jsdoc3 = require('gulp-jsdoc3');
+    const jsdoc3Options = [{
+        plugins: ['./node_modules/tsd-jsdoc/dist']
+    }];
+    return gulp.src(...codeFilesOptions).pipe(jsdoc3(...jsdoc3Options));
+    */
+    return Promise.all(codeFiles.map(file => commandLine(
+        'npx jsdoc node_modules/tsd-jsdoc/dist -r ' + file
+    )));
+}
+
+
 /**
  * Creates additional JSON-based class references with JSDoc using
  * tsconfig.json.
@@ -1201,8 +1228,8 @@ const jsdocNamespace = () => {
     let codeFiles = JSON.parse(fs.readFileSync('tsconfig.json')).files
             .filter(file => (
                 file.indexOf('test') !== 0 &&
-                !file.indexOf('global.d.ts') >= 0 &&
-                !file.indexOf('.src.d.ts') >= 0
+                file.indexOf('global.d.ts') === -1 &&
+                file.indexOf('.src.d.ts') === -1
             ))
             .map(file => file.replace(/.d.ts$/, '.src.js')),
         productFolders = [
@@ -1243,6 +1270,7 @@ const jsdocNamespace = () => {
     return new Promise(aGulp);
 };
 
+
 /**
  * Creates JSON-based option references from JSDoc.
  */
@@ -1255,6 +1283,7 @@ const jsdocOptions = () => {
         onlyBuildCurrent: true
     });
 };
+
 
 gulp.task('start-api-server', startServer);
 gulp.task('upload-api', uploadAPIDocs);
@@ -1292,6 +1321,7 @@ function dtsLint() {
 
 gulp.task('dts', ['jsdoc-options', 'jsdoc-namespace'], dts);
 gulp.task('dtslint', ['dts'], dtsLint);
+gulp.task('dtsx', ['scripts'], jsdocDeclarations);
 
 /**
  * Gulp task to run the building process of distribution files. By default it
