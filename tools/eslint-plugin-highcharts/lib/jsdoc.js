@@ -65,7 +65,7 @@ const REGEXP_DOCSPLIT = /[\n\r][\s\*]+(?=@)/gm;
  * @param {RegExp} regExp
  *        The regular expression to match agains.
  *
- * @return {Array<RegExecMatch>}
+ * @return {RegExpMatches}
  *         All Matches in the text.
  */
 function matchAll(text, regExp) {
@@ -173,6 +173,7 @@ class Doclet {
          */
         this.sections = comment
             .replace(REGEXP_DOCLET, '$1')
+            .replace(REGEXP_DOCLINE, '$2')
             .split(REGEXP_DOCSPLIT);
     }
 
@@ -189,7 +190,7 @@ class Doclet {
      *         The string representation of the doclets.
      */
     toString() {
-        return 'Doclets[ ' + this.sections.join(', ') + ' ]';
+        return this.sections.join('\n\n');
     }
 
 }
@@ -247,6 +248,25 @@ class Visitor {
      *
      * */
 
+    _addChildNode(node) {
+
+        if (!this._currentNode) {
+            this._currentNode = {
+                depth: 0
+            };
+            this.rootNode = this._currentNode;
+        }
+
+        const currentNode = this._currentNode;
+
+        node.parent = currentNode;
+        node.depth = (currentNode.depth + 1);
+
+        currentNode.children = (currentNode.children || []);
+        currentNode.children.push(node);
+
+    }
+
     plan() {
         /* Possible types:
            ArrayExpression, ArrayPattern, ArrowFunctionExpression,
@@ -290,15 +310,12 @@ class Visitor {
 
         const codeLine = astNode.loc.end.line + 1;
         const code = this._codeLines[codeLine - 1];
-        const currentNode = this._currentNode;
+
         const node = {
-            parent: currentNode,
             doclet: new Doclet(comment, codeLine, code)
         };
 
-        currentNode.children = (currentNode.children || []);
-        currentNode.children.push(node);
-
+        this._addChildNode(node);
         this._visitCallback(node, Visitor);
 
     }
@@ -306,7 +323,8 @@ class Visitor {
     visitIdentifier(astNode) {
 
         const codeLine = astNode.loc.end.line;
-        const currentDoclet = this._currentNode.doclet;
+        const currentNode = this._currentNode;
+        const currentDoclet = currentNode && currentNode.doclet;
 
         if (currentDoclet &&
             currentDoclet.codeLine === codeLine &&
@@ -319,43 +337,32 @@ class Visitor {
 
     visitStart(astNode) {
 
+        const codeLine = astNode.loc && astNode.loc.end.line;
         const currentNode = this._currentNode;
+        const currentDoclet = currentNode && currentNode.doclet;
 
-        if (!currentNode) {
-            this.rootNode = {};
-            this._currentNode = this.rootNode;
-            return;
-        }
-
-        if (!astNode.loc) {
-            return;
-        }
-
-        const codeLine = astNode.loc.end.line;
-        const currentDoclet = currentNode.doclet;
-
-        if (!currentDoclet ||
-            currentDoclet.codeLine !== codeLine
+        if (!codeLine ||
+            !currentDoclet ||
+            codeLine !== currentDoclet.codeLine
         ) {
             return;
         }
 
-        const node = {
-            parent: currentNode
-        };
+        const node = {};
 
-        currentNode.children = (currentNode.children || []);
-        currentNode.children.push(node);
+        this._addChildNode(node);
         this._currentNode = node;
 
     }
 
     visitEnd() {
 
-        const node = this._currentNode;
+        const currentNode = this._currentNode;
 
-        if (node.parent) {
-            this._currentNode = node.parent;
+        if (currentNode &&
+            currentNode.parent
+        ) {
+            this._currentNode = currentNode.parent;
         }
 
     }
