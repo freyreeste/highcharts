@@ -138,13 +138,16 @@ class Doclet {
      * @param {string} comment
      *        The doclet comment, with or without the slashes.
      *
+     * @param {number} commentLine
+     *        The line number of the doclet comment.
+     *
      * @param {string} code
      *        The code line following the doclet comment.
      *
      * @param {number} codeLine
-     *        The number of the following code line.
+     *        The line number of the code line following the doclet comment.
      */
-    constructor(comment, code, codeLine) {
+    constructor(comment, commentLine, code, codeLine) {
 
         /* *
          *
@@ -158,15 +161,19 @@ class Doclet {
         this.code = code;
 
         /**
-         * The number of the following code line.
+         * The line number of the code line following the doclet comment.
          */
         this.codeLine = codeLine;
-
 
         /**
          * The doclet comment, with or without the slashes.
          */
         this.comment = comment;
+
+        /**
+         * The line number of the doclet comment.
+         */
+        this.commentLine = commentLine;
 
         /**
          * The parsed doclet sections.
@@ -175,6 +182,21 @@ class Doclet {
             .replace(REGEXP_DOCLET, '$1')
             .replace(REGEXP_DOCLINE, '$2')
             .split(REGEXP_DOCSPLIT);
+
+        const indentionMatches = matchAll(comment, REGEXP_DOCLINE);
+
+        /**
+         * The line indention of the doclet comment.
+         */
+        this.commentIndention = (
+            indentionMatches.length > 0 ?
+            ((
+                indentionMatches[indentionMatches.length - 1][1] ||
+                ' '
+            ).length - 1) :
+            0
+        );
+
     }
 
     /* *
