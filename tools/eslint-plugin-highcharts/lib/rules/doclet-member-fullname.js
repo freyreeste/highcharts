@@ -1,15 +1,26 @@
 /* eslint no-console: 0 */
 /* eslint-disable */
+
 'use strict';
+
+const jsdoc = require('../jsdoc');
 
 const message = (
     'Member name "{{ name }}" has to start with "Highcharts.", "global.",' +
     ' or "globals.", if it is not part of an existing scope.'
 );
 
-const regExp = /^(?:Highcharts|globals?)\./;
-const typelessTag = /@(function|interface|module|name|namespace)\s+([\w\.]+)/;
-const typedTag = /@(param|typedef)\s+\{([\w\.]+)\}\s+\[?([\w\.]+)/;
+const scopePrefixRegExp = /^(?:Highcharts|globals?)\./;
+const typelessTagRegExp = /@(function|interface|module|name|namespace)\s+([\w\.]+)/;
+const typedTagRegExp = /@(param|typedef)\s+\{([^\}]+)\}\s+\[?([\w\.]+)/;
+
+function extractName(comment) {
+    const typelessTag = new RegExp(typelessTagRegExp, 'gm');
+    const typedTag = new RegExp(typedTagRegExp, 'gm');
+    console.log(typelessTag.exec(comment));
+    console.log(typedTag.exec(comment));
+    console.log(jsdoc);
+}
 
 module.exports = {
     meta: {
@@ -23,47 +34,7 @@ module.exports = {
         schema: []
     },
     create: function (context) {
-
-        let currentCodeDepth = 0;
-        let currentCodeName = '';
-        let currentCodeNames = [];
-        let currentComment;
-        let currentName;
-        // let currentCodePath = null;
-
-        return {
-            BlockComment: function (node) {
-                const blockComment = node.value;
-                if (!blockComment ||
-                    !blockComment.startsWith('*\n')
-                ) {
-                    return;
-                }
-                currentComment = blockComment;
-            },
-            Identifier: function (node) {
-                currentCodeNames[currentCodeDepth - 1] = node.name;
-                currentCodeName = currentCodeNames.join('.');
-            },
-            MemberExpression: function (node) {
-                if (!regExp.test(currentCodeName + '.')) {
-                    context.report(
-                        node,
-                        message,
-                        {
-                            name: currentCodeName
-                        }
-                    );
-                }
-            },
-            onCodePathStart: function () {
-                currentCodeDepth++;
-                // currentCodePath = codePath;
-            },
-            onCodePathEnd: function () {
-                currentCodeDepth--;
-                // currentCodePath = codePath.upper;
-            }
-        };
+        const visitor = new jsdoc.Visitor(context); //, node => process.stdout.write('\n\n' + node.doclet));
+        return visitor.plan();
     }
 };
