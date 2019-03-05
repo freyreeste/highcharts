@@ -1,4 +1,3 @@
-
 QUnit.test('Adapt height', function (assert) {
     var chart = Highcharts.chart('container', {
         chart: {
@@ -22,6 +21,15 @@ QUnit.test('Adapt height', function (assert) {
                 chartOptions: {
                     chart: {
                         height: 300
+                    }
+                }
+            }, {
+                condition: {
+                    maxWidth: 300
+                },
+                chartOptions: {
+                    chart: {
+                        height: '100%'
                     }
                 }
             }]
@@ -53,6 +61,20 @@ QUnit.test('Adapt height', function (assert) {
         400,
         'Height reset'
     );
+
+    chart.setSize(200);
+
+    assert.strictEqual(
+        chart.chartWidth,
+        200,
+        'Width updated'
+    );
+    assert.strictEqual(
+        chart.chartHeight,
+        200,
+        'Percentage height updated'
+    );
+
 });
 
 QUnit.test('Callback', function (assert) {
@@ -478,4 +500,71 @@ QUnit.test('Mismatch of collection length (#6347)', function (assert) {
         '12px',
         'Responsive font size'
     );
+});
+
+QUnit.test('Responsive rules and chart.update', function (assert) {
+    var options = {
+
+        chart: {
+            type: 'column',
+            width: 400
+        },
+
+        legend: {
+            enabled: true
+        },
+
+        series: [{
+            name: 'Sales',
+            data: [434, 523, 345, 785, 565, 843, 726, 590, 665, 434, 312, 432]
+        }],
+
+        responsive: {
+            rules: [{
+                condition: {
+                    maxWidth: 500
+                },
+                // Make the labels less space demanding on mobile
+                chartOptions: {
+                    legend: {
+                        enabled: false
+                    }
+                }
+            }]
+        }
+    };
+
+    var chart = Highcharts.chart('container', options);
+
+    var plotHeight = chart.plotHeight;
+
+    assert.strictEqual(
+        Boolean(chart.legend.group),
+        false,
+        'There should be no visible legend'
+    );
+
+    chart.update(options);
+
+    assert.strictEqual(
+        chart.plotHeight,
+        plotHeight,
+        'The height should not change'
+    );
+
+    assert.strictEqual(
+        Boolean(chart.legend.group),
+        false,
+        'There should still be no visible legend (#9617)'
+    );
+
+    chart.setSize(600);
+
+    assert.strictEqual(
+        chart.legend.group.element.nodeName,
+        'g',
+        'The legend should reappear'
+    );
+
+
 });

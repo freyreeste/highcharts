@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -22,7 +27,10 @@ var seriesType = H.seriesType,
  *
  * @augments Highcharts.Series
  */
-seriesType('macd', 'sma',
+seriesType(
+    'macd',
+    'sma',
+
     /**
      * Moving Average Convergence Divergence (MACD). This series requires
      * `linkedTo` option to be set and should be loaded after the
@@ -40,28 +48,20 @@ seriesType('macd', 'sma',
         params: {
             /**
              * The short period for indicator calculations.
-             *
-             * @since 6.0.0
              */
             shortPeriod: 12,
             /**
              * The long period for indicator calculations.
-             *
-             * @since 6.0.0
              */
             longPeriod: 26,
             /**
              * The base period for signal calculations.
-             *
-             * @since 6.0.0
              */
             signalPeriod: 9,
             period: 26
         },
         /**
          * The styles for signal line
-         *
-         * @since 6.0.0
          */
         signalLine: {
             /**
@@ -74,23 +74,18 @@ seriesType('macd', 'sma',
             styles: {
                 /**
                  * Pixel width of the line.
-                 *
-                 * @since 6.0.0
                  */
                 lineWidth: 1,
                 /**
                  * Color of the line.
                  *
                  * @type  {Highcharts.ColorString}
-                 * @since 6.0.0
                  */
                 lineColor: undefined
             }
         },
         /**
          * The styles for macd line
-         *
-         * @since 6.0.0
          */
         macdLine: {
             /**
@@ -103,15 +98,12 @@ seriesType('macd', 'sma',
             styles: {
                 /**
                  * Pixel width of the line.
-                 *
-                 * @since 6.0.0
                  */
                 lineWidth: 1,
                 /**
                  * Color of the line.
                  *
                  * @type  {Highcharts.ColorString}
-                 * @since 6.0.0
                  */
                 lineColor: undefined
             }
@@ -136,7 +128,11 @@ seriesType('macd', 'sma',
             approximation: 'averages'
         },
         minPointLength: 0
-    }, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    {
         nameComponents: ['longPeriod', 'shortPeriod', 'signalPeriod'],
         requiredIndicators: ['ema'],
         // "y" value is treated as Histogram data
@@ -320,13 +316,15 @@ seriesType('macd', 'sma',
             }
 
             // Calculating the short and long EMA used when calculating the MACD
-            shortEMA = EMA.prototype.getValues(series,
+            shortEMA = EMA.prototype.getValues(
+                series,
                 {
                     period: params.shortPeriod
                 }
             );
 
-            longEMA = EMA.prototype.getValues(series,
+            longEMA = EMA.prototype.getValues(
+                series,
                 {
                     period: params.longPeriod
                 }
@@ -344,7 +342,7 @@ seriesType('macd', 'sma',
                     defined(longEMA[i - 1][1]) &&
                     defined(shortEMA[i + params.shortPeriod + 1]) &&
                     defined(shortEMA[i + params.shortPeriod + 1][0])
-                    ) {
+                ) {
                     MACD.push([
                         shortEMA[i + params.shortPeriod + 1][0],
                         0,
@@ -413,14 +411,7 @@ seriesType('macd', 'sma',
  *
  * @extends   series,plotOptions.macd
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
  * @product   highstock
+ * @excluding dataParser, dataURL
  * @apioption series.macd
- */
-
-/**
- * @extends   series.sma.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.macd.data
  */

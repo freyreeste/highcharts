@@ -1,5 +1,5 @@
-/**
- * (c) 2010-2018 Torstein Honsi
+/* *
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -38,7 +38,7 @@ extend(Pane.prototype, {
     coll: 'pane', // Member of chart.pane
 
     /**
-     * Initiate the Pane object
+     * Initialize the Pane object
      *
      * @private
      * @function Highcharts.Pane#init
@@ -382,8 +382,9 @@ extend(Pane.prototype, {
      * @param {boolean} redraw
      */
     update: function (options, redraw) {
-
         merge(true, this.options, options);
+        merge(true, this.chart.options.pane, options); // #9917
+
         this.setOptions(this.options);
         this.render();
         this.chart.axes.forEach(function (axis) {
@@ -393,7 +394,6 @@ extend(Pane.prototype, {
             }
         }, this);
     }
-
 });
 
 H.Pane = Pane;

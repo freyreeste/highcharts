@@ -1,6 +1,9 @@
 QUnit.test('Bindings general tests', function (assert) {
 
     var chart = Highcharts.stockChart('container', {
+            chart: {
+                width: 800
+            },
             yAxis: {
                 labels: {
                     align: 'left'
@@ -51,9 +54,9 @@ QUnit.test('Bindings general tests', function (assert) {
     function selectButton(name) {
         var button = document.getElementsByClassName('highcharts-' + name)[0];
         // Bind annotation to the chart events:
-        chart.stockToolbar.bindingsButtonClick(
+        chart.navigationBindings.bindingsButtonClick(
             button,
-            chart.stockToolbar.boundClassNames['highcharts-' + name],
+            chart.navigationBindings.boundClassNames['highcharts-' + name],
             {
                 target: {
                     parentNode: button,
@@ -95,7 +98,7 @@ QUnit.test('Bindings general tests', function (assert) {
                 points[2].plotY + plotTop - 5
             );
             Highcharts.each(
-                chart.stockToolbar.boundClassNames['highcharts-' + name].steps,
+                chart.navigationBindings.boundClassNames['highcharts-' + name].steps,
                 function (step, index) {
                     controller.click(
                         points[4 + index].plotX + plotLeft - 5,
@@ -138,36 +141,6 @@ QUnit.test('Bindings general tests', function (assert) {
             );
         }
     );
-
-
-    // Flags tests:
-    // TO DO: Enable once Flag form will be ready
-    /*
-    Highcharts.each(
-        [
-            'flag-circlepin',
-            'flag-diamondpin',
-            'flag-squarepin',
-            'flag-simplepin'
-        ],
-        function (name) {
-            var seriesLength = chart.series.length;
-
-            selectButton(name);
-
-            controller.click(
-                points[2].plotX,
-                points[2].plotY
-            );
-
-            assert.strictEqual(
-                chart.series.length,
-                seriesLength + 1,
-                'Flag: ' + name + ' added without errors.'
-            );
-        }
-    );
-    */
 
     // Individual button events:
 
@@ -257,10 +230,10 @@ QUnit.test('Bindings general tests', function (assert) {
 
     // Test yAxis resizers and adding indicators:
     for (i = 0; i < 9; i++) {
-        chart.stockToolbar.selectedButtonElement = document
+        chart.navigationBindings.selectedButtonElement = document
             .getElementsByClassName('highcharts-indicators')[0];
-        chart.stockToolbar.utils.manageIndicators.call(
-            chart.stockToolbar,
+        chart.navigationBindings.utils.manageIndicators.call(
+            chart.navigationBindings,
             {
                 actionType: 'add',
                 linkedTo: 'aapl',
@@ -290,10 +263,10 @@ QUnit.test('Bindings general tests', function (assert) {
     }
 
     for (i = 9; i > 0; i--) {
-        chart.stockToolbar.selectedButtonElement = document
+        chart.navigationBindings.selectedButtonElement = document
             .getElementsByClassName('highcharts-indicators')[0];
-        chart.stockToolbar.utils.manageIndicators.call(
-            chart.stockToolbar,
+        chart.navigationBindings.utils.manageIndicators.call(
+            chart.navigationBindings,
             {
                 actionType: 'remove',
                 seriesId: chart.series[chart.series.length - 2].options.id
@@ -312,33 +285,31 @@ QUnit.test('Bindings general tests', function (assert) {
 
     // Test annotation events:
     points = chart.series[0].points;
-    chart.stockToolbar.popup.closePopup();
+    chart.navigationBindings.popup.closePopup();
     controller.click(
         points[2].plotX + plotLeft - 5,
         points[2].plotY + plotTop - 25
     );
     assert.strictEqual(
-        chart.stockToolbar.popup.container.classList
+        chart.navigationBindings.popup.container.classList
             .contains('highcharts-annotation-toolbar'),
         true,
         'Annotations toolbar rendered.'
     );
 
     assert.strictEqual(
-        chart.stockToolbar.popup.container.style.display,
+        chart.navigationBindings.popup.container.style.display,
         'block',
         'Annotations toolbar visible.'
     );
 
     // Styles in Karma are not loaded!
-    chart.stockToolbar.popup.container.style.position = 'absolute';
+    chart.navigationBindings.popup.container.style.position = 'absolute';
 
     var button = document.querySelectorAll(
             '.highcharts-popup .highcharts-annotation-remove-button'
         )[0],
-        buttonOffset = Highcharts.offset(
-            button
-        );
+        buttonOffset = Highcharts.offset(button);
 
     controller.click(
         buttonOffset.left + 5,
@@ -350,10 +321,63 @@ QUnit.test('Bindings general tests', function (assert) {
         'Annotation removed through popup.'
     );
     assert.strictEqual(
-        chart.stockToolbar.popup.container.style.display,
+        chart.navigationBindings.popup.container.style.display,
         'none',
         'Annotations toolbar hidden.'
     );
+
+    // Test flags:
+    var seriesLength = chart.series.length;
+
+    selectButton('flag-circlepin');
+    // Register flag position
+    controller.click(
+        points[2].plotX,
+        points[2].plotY
+    );
+
+    // Styles in Karma are not loaded!
+    chart.navigationBindings.popup.container.style.position = 'absolute';
+    chart.navigationBindings.popup.container.style.top = '0px';
+    button = document.querySelectorAll(
+        '.highcharts-popup .highcharts-popup-bottom-row button'
+    )[0];
+    buttonOffset = Highcharts.offset(button);
+    controller.click(
+        buttonOffset.left + 5,
+        buttonOffset.top + 5
+    );
+
+    assert.strictEqual(
+        chart.series.length,
+        seriesLength + 1,
+        'Flag: flag-circlepin series created.'
+    );
+
+    assert.strictEqual(
+        chart.series[seriesLength].points.length,
+        1,
+        'Flag: no duplicated flags.'
+    );
+
+    // #9740:
+    chart.update({
+        stockTools: {
+            gui: {
+                buttons: ['toggleAnnotations']
+            }
+        }
+    }, true);
+
+    selectButton('toggle-annotations');
+
+    assert.strictEqual(
+        chart.annotations[0].options.visible,
+        false,
+        'After chart.update() events are correctly bound.'
+    );
+    // Restore default button state:
+    selectButton('toggle-annotations');
 
     // Restore details:
     if (qunitContainer) {

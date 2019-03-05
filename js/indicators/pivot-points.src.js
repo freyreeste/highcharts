@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -26,13 +31,17 @@ function destroyExtraLabels(point, functionName) {
 }
 
 /**
+ * The Pivot Points series type.
+ *
  * @private
  * @class
  * @name Highcharts.seriesTypes.pivotpoints
  *
  * @augments Highcharts.Series
  */
-H.seriesType('pivotpoints', 'sma',
+H.seriesType(
+    'pivotpoints',
+    'sma',
     /**
      * Pivot points indicator. This series requires the `linkedTo` option to be
      * set and should be loaded after `stock/indicators/indicators.js` file.
@@ -55,8 +64,6 @@ H.seriesType('pivotpoints', 'sma',
              * Algorithm used to calculate ressistance and support lines based
              * on pivot points. Implemented algorithms: `'standard'`,
              * `'fibonacci'` and `'camarilla'`
-             *
-             * @since 6.0.0
              */
             algorithm: 'standard'
         },
@@ -65,13 +72,19 @@ H.seriesType('pivotpoints', 'sma',
         },
         enableMouseTracking: false,
         dataLabels: {
+            /** @ignore-option */
             enabled: true,
+            /** @ignore-option */
             format: '{point.pivotLine}'
         },
         dataGrouping: {
             approximation: 'averages'
         }
-    }, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    {
         nameBase: 'Pivot Points',
         pointArrayMap: ['R4', 'R3', 'R2', 'R1', 'P', 'S1', 'S2', 'S3', 'S4'],
         pointValKey: 'P',
@@ -238,7 +251,7 @@ H.seriesType('pivotpoints', 'sma',
 
                 lastPP = PP.push(
                     [endTimestamp]
-                    .concat(avg)
+                        .concat(avg)
                 );
 
                 xData.push(endTimestamp);
@@ -263,6 +276,7 @@ H.seriesType('pivotpoints', 'sma',
                 low = Infinity,
                 close = values[values.length - 1][3],
                 pivot;
+
             values.forEach(function (p) {
                 high = Math.max(high, p[1]);
                 low = Math.min(low, p[2]);
@@ -319,7 +333,11 @@ H.seriesType('pivotpoints', 'sma',
 
             return avg;
         }
-    }, {
+    },
+    /**
+     * @lends Highcharts.Point#
+     */
+    {
         // Destroy labels:
         // This method is called when cropping data:
         destroyElements: function () {
@@ -338,17 +356,7 @@ H.seriesType('pivotpoints', 'sma',
  *
  * @extends   series,plotOptions.pivotpoints
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
  * @product   highstock
+ * @excluding dataParser, dataURL
  * @apioption series.pivotpoints
- */
-
-/**
- * An array of data points for the series. For the `pivotpoints` series type,
- * points are calculated dynamically.
- *
- * @extends   series.line.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.pivotpoints.data
  */

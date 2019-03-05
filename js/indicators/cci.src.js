@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -35,7 +40,9 @@ function meanDeviation(arr, sma) {
  *
  * @augments Highcharts.Series
  */
-seriesType('cci', 'sma',
+seriesType(
+    'cci',
+    'sma',
     /**
      * Commodity Channel Index (CCI). This series requires `linkedTo` option to
      * be set.
@@ -52,7 +59,11 @@ seriesType('cci', 'sma',
         params: {
             period: 14
         }
-    }, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    {
         getValues: function (series, params) {
             var period = params.period,
                 xVal = series.xData,
@@ -105,7 +116,8 @@ seriesType('cci', 'sma',
                 yData: yData
             };
         }
-    });
+    }
+);
 
 /**
  * A `CCI` series. If the [type](#series.cci.type) option is not
@@ -113,14 +125,7 @@ seriesType('cci', 'sma',
  *
  * @extends   series,plotOptions.cci
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
+ * @excluding dataParser, dataURL
  * @product   highstock
  * @apioption series.cci
- */
-
-/**
- * @extends   series.sma.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.cci.data
  */

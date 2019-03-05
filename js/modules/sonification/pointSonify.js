@@ -1,33 +1,19 @@
-/**
- * (c) 2009-2018 Øystein Moseng
+/* *
  *
- * Code for sonifying single points.
+ *  (c) 2009-2019 Øystein Moseng
  *
- * License: www.highcharts.com/license
- */
-
-'use strict';
-
-import H from '../../parts/Globals.js';
-import utilities from 'utilities.js';
-
-// Defaults for the instrument options
-// NOTE: Also change defaults in Highcharts.PointInstrumentOptionsObject if
-//       making changes here.
-var defaultInstrumentOptions = {
-    minDuration: 20,
-    maxDuration: 2000,
-    minVolume: 0.1,
-    maxVolume: 1,
-    minPan: -1,
-    maxPan: 1,
-    minFrequency: 220,
-    maxFrequency: 2200
-};
+ *  Code for sonifying single points.
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 
 /**
  * Define the parameter mapping for an instrument.
+ *
+ * @requires module:modules/sonification
+ *
  * @interface Highcharts.PointInstrumentMappingObject
  *//**
  * Define the volume of the instrument. This can be a string with a data
@@ -80,6 +66,7 @@ var defaultInstrumentOptions = {
 
 
 /**
+ * @requires module:modules/sonification
  *
  * @interface Highcharts.PointInstrumentOptionsObject
  *//**
@@ -192,18 +179,40 @@ var defaultInstrumentOptions = {
  */
 
 
+'use strict';
+
+import H from '../../parts/Globals.js';
+import utilities from 'utilities.js';
+
+// Defaults for the instrument options
+// NOTE: Also change defaults in Highcharts.PointInstrumentOptionsObject if
+//       making changes here.
+var defaultInstrumentOptions = {
+    minDuration: 20,
+    maxDuration: 2000,
+    minVolume: 0.1,
+    maxVolume: 1,
+    minPan: -1,
+    maxPan: 1,
+    minFrequency: 220,
+    maxFrequency: 2200
+};
+
+
 /**
- * Sonify a single point. Requires the `sonification` module.
- *
- * @function Highcharts.Point#sonify
- *
- * @param   {Highcharts.PointSonifyOptionsObject} options
- *          Options for the sonification of the point.
+ * Sonify a single point.
  *
  * @sample highcharts/sonification/point-basic/
  *         Click on points to sonify
  * @sample highcharts/sonification/point-advanced/
  *         Sonify bubbles
+ *
+ * @requires module:modules/sonification
+ *
+ * @function Highcharts.Point#sonify
+ *
+ * @param {Highcharts.PointSonifyOptionsObject} options
+ *        Options for the sonification of the point.
  */
 function pointSonify(options) {
     var point = this,
@@ -256,6 +265,7 @@ function pointSonify(options) {
     var signalHandler = point.sonification.signalHandler =
         point.sonification.signalHandler ||
         new utilities.SignalHandler(['onEnd']);
+
     signalHandler.clearSignalCallbacks();
     signalHandler.registerSignalCallbacks({ onEnd: options.onEnd });
 
@@ -345,14 +355,18 @@ function pointSonify(options) {
 /**
  * Cancel sonification of a point. Calls onEnd functions.
  *
+ * @requires module:modules/sonification
+ *
  * @function Highcharts.Point#cancelSonify
  *
- * @param   {boolean} [fadeOut=false] Whether or not to fade out as we stop. If
- *          false, the points are cancelled synchronously.
+ * @param {boolean} [fadeOut=false]
+ *        Whether or not to fade out as we stop. If false, the points are
+ *        cancelled synchronously.
  */
 function pointCancelSonify(fadeOut) {
     var playing = this.sonification && this.sonification.instrumentsPlaying,
         instrIds = playing && Object.keys(playing);
+
     if (instrIds && instrIds.length) {
         instrIds.forEach(function (instr) {
             playing[instr].stop(!fadeOut, null, 'cancelled');
@@ -367,4 +381,5 @@ var pointSonifyFunctions = {
     pointSonify: pointSonify,
     pointCancelSonify: pointCancelSonify
 };
+
 export default pointSonifyFunctions;

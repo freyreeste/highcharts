@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -25,7 +30,9 @@ function populateAverage(points, xVal, yVal, i, period) {
  *
  * @augments Highcharts.Series
  */
-seriesType('momentum', 'sma',
+seriesType(
+    'momentum',
+    'sma',
     /**
      * Momentum. This series requires `linkedTo` option to be set.
      *
@@ -41,7 +48,11 @@ seriesType('momentum', 'sma',
         params: {
             period: 14
         }
-    }, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    {
         nameBase: 'Momentum',
         getValues: function (series, params) {
             var period = params.period,
@@ -102,14 +113,7 @@ seriesType('momentum', 'sma',
  *
  * @extends   series,plotOptions.momentum
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
+ * @excluding dataParser, dataURL
  * @product   highstock
  * @apioption series.momentum
- */
-
-/**
- * @extends   series.sma.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.momentum.data
  */

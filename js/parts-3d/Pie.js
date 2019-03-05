@@ -1,5 +1,5 @@
 /* *
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * 3D pie series
  *
@@ -86,6 +86,7 @@ wrap(
     'haloPath',
     function (proceed) {
         var args = arguments;
+
         return this.series.chart.is3d() ? [] : proceed.call(this, args[1]);
     }
 );
@@ -106,27 +107,12 @@ wrap(
     }
 );
 
-wrap(seriesTypes.pie.prototype, 'drawPoints', function (proceed) {
-    proceed.apply(this, [].slice.call(arguments, 1));
-
-    if (this.chart.is3d()) {
-        this.points.forEach(function (point) {
-            var graphic = point.graphic;
-
-            // #4584 Check if has graphic - null points don't have it
-            if (graphic) {
-                // Hide null or 0 points (#3006, 3650)
-                graphic[point.y && point.visible ? 'show' : 'hide']();
-            }
-        });
-    }
-});
-
 wrap(seriesTypes.pie.prototype, 'drawDataLabels', function (proceed) {
     if (this.chart.is3d()) {
         var series = this,
             chart = series.chart,
             options3d = chart.options.chart.options3d;
+
         series.data.forEach(function (point) {
             var shapeArgs = point.shapeArgs,
                 r = shapeArgs.r,

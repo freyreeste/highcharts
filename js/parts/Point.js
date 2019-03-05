@@ -1,5 +1,5 @@
 /**
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -49,6 +49,14 @@
  * @type {number|undefined}
  */
 
+/**
+ * @interface Highcharts.PointObject
+ *//**
+ * Custom properties set by custom data options.
+ * @name Highcharts.Point#[property:string]
+ * @type {*}
+ */
+
 'use strict';
 
 import Highcharts from './Globals.js';
@@ -75,6 +83,7 @@ var Point,
  *
  * @class
  * @name Highcharts.Point
+ * @implements {Highcharts.PointObject}
  */
 Highcharts.Point = Point = function () {};
 Highcharts.Point.prototype = {
@@ -274,12 +283,14 @@ Highcharts.Point.prototype = {
      */
     setNestedProperty: function (object, value, key) {
         var nestedKeys = key.split('.');
+
         nestedKeys.reduce(function (result, key, i, arr) {
             var isLastKey = arr.length - 1 === i;
+
             result[key] = (
                 isLastKey ?
-                value :
-                (H.isObject(result[key], true) ? result[key] : {})
+                    value :
+                    (H.isObject(result[key], true) ? result[key] : {})
             );
             return result[key];
         }, object);
@@ -474,6 +485,7 @@ Highcharts.Point.prototype = {
             ],
             prop,
             i = 6;
+
         while (i--) {
             prop = props[i];
             if (point[prop]) {
@@ -621,6 +633,53 @@ Highcharts.Point.prototype = {
     },
 
     /**
+     * For categorized axes this property holds the category name for the
+     * point. For other axes it holds the X value.
+     *
+     * @name Highcharts.Point#category
+     * @type {number|string}
+     */
+
+    /**
+     * The name of the point. The name can be given as the first position of the
+     * point configuration array, or as a `name` property in the configuration:
+     *
+     * @example
+     * // Array config
+     * data: [
+     *     ['John', 1],
+     *     ['Jane', 2]
+     * ]
+     *
+     * // Object config
+     * data: [{
+     *        name: 'John',
+     *        y: 1
+     * }, {
+     *     name: 'Jane',
+     *     y: 2
+     * }]
+     *
+     * @name Highcharts.Point#name
+     * @type {string}
+     */
+
+    /**
+     * The percentage for points in a stacked series or pies.
+     *
+     * @name Highcharts.Point#percentage
+     * @type {number}
+     */
+
+    /**
+     * The total of values in either a stack for stacked series, or a pie in a
+     * pie series.
+     *
+     * @name Highcharts.Point#total
+     * @type {number}
+     */
+
+    /**
      * For certain series types, like pie charts, where individual points can
      * be shown or hidden.
      *
@@ -629,51 +688,3 @@ Highcharts.Point.prototype = {
      */
     visible: true
 };
-
-/**
- * For categorized axes this property holds the category name for the
- * point. For other axes it holds the X value.
- *
- * @name Highcharts.Point#category
- * @type {number|string}
- */
-
-/**
- * The name of the point. The name can be given as the first position of the
- * point configuration array, or as a `name` property in the configuration:
- *
- * @example
- * // Array config
- * data: [
- *     ['John', 1],
- *     ['Jane', 2]
- * ]
- *
- * // Object config
- * data: [{
- *        name: 'John',
- *        y: 1
- * }, {
- *     name: 'Jane',
- *     y: 2
- * }]
- *
- * @name Highcharts.Point#name
- * @type {string}
- */
-
-
-/**
- * The percentage for points in a stacked series or pies.
- *
- * @name Highcharts.Point#percentage
- * @type {number}
- */
-
-/**
- * The total of values in either a stack for stacked series, or a pie in a pie
- * series.
- *
- * @name Highcharts.Point#total
- * @type {number}
- */

@@ -1,5 +1,5 @@
 /**
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -55,6 +55,7 @@ TrackerMixin = H.TrackerMixin = {
             pointer = chart.pointer,
             onMouseOver = function (e) {
                 var point = pointer.getPointFromEvent(e);
+
                 // undefined on graph in scatterchart
                 if (point !== undefined) {
                     pointer.isDirectTouch = true;
@@ -182,16 +183,16 @@ TrackerMixin = H.TrackerMixin = {
         } else if (series.graph) { // create
 
             series.tracker = renderer.path(trackerPath)
-            .attr({
-                visibility: series.visible ? 'visible' : 'hidden',
-                zIndex: 2
-            })
-            .addClass(
-                trackByArea ?
-                    'highcharts-tracker-area' :
-                    'highcharts-tracker-line'
-            )
-            .add(series.group);
+                .attr({
+                    visibility: series.visible ? 'visible' : 'hidden',
+                    zIndex: 2
+                })
+                .addClass(
+                    trackByArea ?
+                        'highcharts-tracker-area' :
+                        'highcharts-tracker-line'
+                )
+                .add(series.group);
 
             if (!chart.styledMode) {
                 series.tracker.attr({
@@ -285,58 +286,63 @@ extend(Legend.prototype, {
         (useHTML ? legendItem : item.legendGroup).on('mouseover', function () {
             item.setState('hover');
 
-            // A CSS class to dim or hide other than the hovered series
-            boxWrapper.addClass(activeClass);
+            // A CSS class to dim or hide other than the hovered series.
+            // Works only if hovered series is visible (#10071).
+            if (item.visible) {
+                boxWrapper.addClass(activeClass);
+            }
 
             if (!styledMode) {
                 legendItem.css(legend.options.itemHoverStyle);
             }
         })
-        .on('mouseout', function () {
-            if (!legend.styledMode) {
-                legendItem.css(
-                    merge(
-                        item.visible ?
-                            legend.itemStyle :
-                            legend.itemHiddenStyle
-                    )
-                );
-            }
+            .on('mouseout', function () {
+                if (!legend.styledMode) {
+                    legendItem.css(
+                        merge(
+                            item.visible ?
+                                legend.itemStyle :
+                                legend.itemHiddenStyle
+                        )
+                    );
+                }
 
-            // A CSS class to dim or hide other than the hovered series
-            boxWrapper.removeClass(activeClass);
+                // A CSS class to dim or hide other than the hovered series
+                boxWrapper.removeClass(activeClass);
 
-            item.setState();
-        })
-        .on('click', function (event) {
-            var strLegendItemClick = 'legendItemClick',
-                fnLegendItemClick = function () {
-                    if (item.setVisible) {
-                        item.setVisible();
-                    }
+                item.setState();
+            })
+            .on('click', function (event) {
+                var strLegendItemClick = 'legendItemClick',
+                    fnLegendItemClick = function () {
+                        if (item.setVisible) {
+                            item.setVisible();
+                        }
+                    };
+
+                // A CSS class to dim or hide other than the hovered series.
+                // Event handling in iOS causes the activeClass to be added
+                // prior to click in some cases (#7418).
+                boxWrapper.removeClass(activeClass);
+
+                // Pass over the click/touch event. #4.
+                event = {
+                    browserEvent: event
                 };
 
-            // A CSS class to dim or hide other than the hovered series. Event
-            // handling in iOS causes the activeClass to be added prior to click
-            // in some cases (#7418).
-            boxWrapper.removeClass(activeClass);
-
-            // Pass over the click/touch event. #4.
-            event = {
-                browserEvent: event
-            };
-
-            // click the name or symbol
-            if (item.firePointEvent) { // point
-                item.firePointEvent(
-                    strLegendItemClick,
-                    event,
-                    fnLegendItemClick
-                );
-            } else {
-                fireEvent(item, strLegendItemClick, event, fnLegendItemClick);
-            }
-        });
+                // click the name or symbol
+                if (item.firePointEvent) { // point
+                    item.firePointEvent(
+                        strLegendItemClick,
+                        event,
+                        fnLegendItemClick
+                    );
+                } else {
+                    fireEvent(
+                        item, strLegendItemClick, event, fnLegendItemClick
+                    );
+                }
+            });
     },
 
     /**
@@ -359,6 +365,7 @@ extend(Legend.prototype, {
 
         addEvent(item.checkbox, 'click', function (event) {
             var target = event.target;
+
             fireEvent(
                 item.series || item,
                 'checkboxClick',
@@ -402,13 +409,13 @@ extend(Chart.prototype, /** @lends Chart.prototype */ {
 
         fireEvent(this, 'beforeShowResetZoom', null, function () {
             chart.resetZoomButton = chart.renderer.button(
-                    lang.resetZoom,
-                    null,
-                    null,
-                    zoomOut,
-                    theme,
-                    states && states.hover
-                )
+                lang.resetZoom,
+                null,
+                null,
+                zoomOut,
+                theme,
+                states && states.hover
+            )
                 .attr({
                     align: btnOptions.position.align,
                     title: lang.resetZoomTitle
@@ -445,6 +452,8 @@ extend(Chart.prototype, /** @lends Chart.prototype */ {
             hasZoomed,
             pointer = chart.pointer,
             displayButton = false,
+            mouseDownPos =
+                chart.inverted ? pointer.mouseDownX : pointer.mouseDownY,
             resetZoomButton;
 
         // If zoom is called with no arguments, reset the axes
@@ -457,10 +466,26 @@ extend(Chart.prototype, /** @lends Chart.prototype */ {
         } else { // else, zoom in on all axes
             event.xAxis.concat(event.yAxis).forEach(function (axisData) {
                 var axis = axisData.axis,
-                    isXAxis = axis.isXAxis;
+                    axisStartPos = chart.inverted ? axis.left : axis.top,
+                    axisEndPos = chart.inverted ?
+                        axisStartPos + axis.width : axisStartPos + axis.height,
+                    isXAxis = axis.isXAxis,
+                    isWithinPane = false;
+
+                // Check if zoomed area is within the pane (#1289).
+                // In case of multiple panes only one pane should be zoomed.
+                if (
+                    (!isXAxis &&
+                    mouseDownPos >= axisStartPos &&
+                    mouseDownPos <= axisEndPos) ||
+                    isXAxis ||
+                    !H.defined(mouseDownPos)
+                ) {
+                    isWithinPane = true;
+                }
 
                 // don't zoom more than minRange
-                if (pointer[isXAxis ? 'zoomX' : 'zoomY']) {
+                if (pointer[isXAxis ? 'zoomX' : 'zoomY'] && isWithinPane) {
                     hasZoomed = axis.zoom(axisData.min, axisData.max);
                     if (axis.displayBtn) {
                         displayButton = true;
@@ -508,88 +533,96 @@ extend(Chart.prototype, /** @lends Chart.prototype */ {
             hoverPoints = chart.hoverPoints,
             doRedraw;
 
-        // remove active points for shared tooltip
-        if (hoverPoints) {
-            hoverPoints.forEach(function (point) {
-                point.setState();
+        fireEvent(this, 'pan', { originalEvent: e }, function () {
+
+            // remove active points for shared tooltip
+            if (hoverPoints) {
+                hoverPoints.forEach(function (point) {
+                    point.setState();
+                });
+            }
+
+            // xy is used in maps
+            (panning === 'xy' ? [1, 0] : [1]).forEach(function (isX) {
+                var axis = chart[isX ? 'xAxis' : 'yAxis'][0],
+                    horiz = axis.horiz,
+                    mousePos = e[horiz ? 'chartX' : 'chartY'],
+                    mouseDown = horiz ? 'mouseDownX' : 'mouseDownY',
+                    startPos = chart[mouseDown],
+                    halfPointRange = (axis.pointRange || 0) / 2,
+                    pointRangeDirection =
+                        (axis.reversed && !chart.inverted) ||
+                        (!axis.reversed && chart.inverted) ?
+                            -1 :
+                            1,
+                    extremes = axis.getExtremes(),
+                    panMin = axis.toValue(startPos - mousePos, true) +
+                        halfPointRange * pointRangeDirection,
+                    panMax =
+                        axis.toValue(
+                            startPos + axis.len - mousePos, true
+                        ) -
+                        halfPointRange * pointRangeDirection,
+                    flipped = panMax < panMin,
+                    newMin = flipped ? panMax : panMin,
+                    newMax = flipped ? panMin : panMax,
+                    paddedMin = Math.min(
+                        extremes.dataMin,
+                        halfPointRange ?
+                            extremes.min :
+                            axis.toValue(
+                                axis.toPixels(extremes.min) -
+                                axis.minPixelPadding
+                            )
+                    ),
+                    paddedMax = Math.max(
+                        extremes.dataMax,
+                        halfPointRange ?
+                            extremes.max :
+                            axis.toValue(
+                                axis.toPixels(extremes.max) +
+                                axis.minPixelPadding
+                            )
+                    ),
+                    spill;
+
+                // If the new range spills over, either to the min or max,
+                // adjust the new range.
+                spill = paddedMin - newMin;
+                if (spill > 0) {
+                    newMax += spill;
+                    newMin = paddedMin;
+                }
+                spill = newMax - paddedMax;
+                if (spill > 0) {
+                    newMax = paddedMax;
+                    newMin -= spill;
+                }
+
+                // Set new extremes if they are actually new
+                if (
+                    axis.series.length &&
+                    newMin !== extremes.min &&
+                    newMax !== extremes.max
+                ) {
+                    axis.setExtremes(
+                        newMin,
+                        newMax,
+                        false,
+                        false,
+                        { trigger: 'pan' }
+                    );
+                    doRedraw = true;
+                }
+
+                chart[mouseDown] = mousePos; // set new reference for next run
             });
-        }
 
-        // xy is used in maps
-        (panning === 'xy' ? [1, 0] : [1]).forEach(function (isX) {
-            var axis = chart[isX ? 'xAxis' : 'yAxis'][0],
-                horiz = axis.horiz,
-                mousePos = e[horiz ? 'chartX' : 'chartY'],
-                mouseDown = horiz ? 'mouseDownX' : 'mouseDownY',
-                startPos = chart[mouseDown],
-                halfPointRange = (axis.pointRange || 0) / 2,
-                pointRangeDirection =
-                    (axis.reversed && !chart.inverted) ||
-                    (!axis.reversed && chart.inverted) ?
-                        -1 :
-                        1,
-                extremes = axis.getExtremes(),
-                panMin = axis.toValue(startPos - mousePos, true) +
-                    halfPointRange * pointRangeDirection,
-                panMax = axis.toValue(startPos + axis.len - mousePos, true) -
-                    halfPointRange * pointRangeDirection,
-                flipped = panMax < panMin,
-                newMin = flipped ? panMax : panMin,
-                newMax = flipped ? panMin : panMax,
-                paddedMin = Math.min(
-                    extremes.dataMin,
-                    halfPointRange ?
-                        extremes.min :
-                        axis.toValue(
-                            axis.toPixels(extremes.min) - axis.minPixelPadding
-                        )
-                ),
-                paddedMax = Math.max(
-                    extremes.dataMax,
-                    halfPointRange ?
-                        extremes.max :
-                        axis.toValue(
-                            axis.toPixels(extremes.max) + axis.minPixelPadding
-                        )
-                ),
-                spill;
-
-            // If the new range spills over, either to the min or max, adjust
-            // the new range.
-            spill = paddedMin - newMin;
-            if (spill > 0) {
-                newMax += spill;
-                newMin = paddedMin;
+            if (doRedraw) {
+                chart.redraw(false);
             }
-            spill = newMax - paddedMax;
-            if (spill > 0) {
-                newMax = paddedMax;
-                newMin -= spill;
-            }
-
-            // Set new extremes if they are actually new
-            if (
-                axis.series.length &&
-                newMin !== extremes.min &&
-                newMax !== extremes.max
-            ) {
-                axis.setExtremes(
-                    newMin,
-                    newMax,
-                    false,
-                    false,
-                    { trigger: 'pan' }
-                );
-                doRedraw = true;
-            }
-
-            chart[mouseDown] = mousePos; // set new reference for next run
+            css(chart.container, { cursor: 'move' });
         });
-
-        if (doRedraw) {
-            chart.redraw(false);
-        }
-        css(chart.container, { cursor: 'move' });
     }
 });
 
@@ -686,6 +719,7 @@ extend(Point.prototype, /** @lends Highcharts.Point.prototype */ {
             series = point.series,
             chart = series.chart,
             pointer = chart.pointer;
+
         e = e ?
             pointer.normalize(e) :
             // In cases where onMouseOver is called directly without an event
@@ -704,6 +738,7 @@ extend(Point.prototype, /** @lends Highcharts.Point.prototype */ {
     onMouseOut: function () {
         var point = this,
             chart = point.series.chart;
+
         point.firePointEvent('mouseOut');
         (chart.hoverPoints || []).forEach(function (p) {
             p.setState();
@@ -867,7 +902,7 @@ extend(Point.prototype, /** @lends Highcharts.Point.prototype */ {
                                 markerAttribs.width,
                                 markerAttribs.height
                             )
-                            .add(series.markerGroup);
+                                .add(series.markerGroup);
                         stateMarkerGraphic.currentSymbol = newSymbol;
                     }
 
@@ -989,6 +1024,13 @@ extend(Series.prototype, /** @lends Highcharts.Series.prototype */ {
 
         // hover this
         series.setState('hover');
+
+        /**
+         * Contains the original hovered series.
+         *
+         * @name Highcharts.Chart#hoverSeries
+         * @type {Highcharts.Series|null}
+         */
         chart.hoverSeries = series;
     },
 

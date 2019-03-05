@@ -1,12 +1,12 @@
-/**
- * @license  @product.name@ JS v@product.version@ (@product.date@)
+/* *
  *
- * Parabolic SAR indicator for Highstock
+ *  Parabolic SAR indicator for Highstock
  *
- * (c) 2010-2017 Grzegorz Blachliński
+ *  (c) 2010-2019 Grzegorz Blachliński
  *
- * License: www.highcharts.com/license
- */
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -43,7 +43,8 @@ function getAccelerationFactor(dir, pDir, eP, pEP, pAcc, inc, maxAcc, initAcc) {
     if (dir === pDir) {
         if (dir === 1 && (eP > pEP)) {
             return (pAcc === maxAcc) ? maxAcc : toFixed(pAcc + inc, 2);
-        } else if (dir === -1 && (eP < pEP)) {
+        }
+        if (dir === -1 && (eP < pEP)) {
             return (pAcc === maxAcc) ? maxAcc : toFixed(pAcc + inc, 2);
         }
         return pAcc;
@@ -93,7 +94,6 @@ function getPSAR(pdir, sDir, PSAR, pACCMulti, sLow, pLow, pHigh, sHigh, pEP) {
 }
 
 
-
 /**
  * The Parabolic SAR series type.
  *
@@ -103,7 +103,9 @@ function getPSAR(pdir, sDir, PSAR, pACCMulti, sLow, pLow, pHigh, sHigh, pEP) {
  *
  * @augments Highcharts.Series
  */
-H.seriesType('psar', 'sma',
+H.seriesType(
+    'psar',
+    'sma',
     /**
      * Parabolic SAR. This series requires `linkedTo`
      * option to be set and should be loaded
@@ -138,16 +140,12 @@ H.seriesType('psar', 'sma',
              * the extreme point makes a new high.
              * AF can reach a maximum of maxAccelerationFactor,
              * no matter how long the uptrend extends.
-             *
-             * @since 6.0.0
              */
             initialAccelerationFactor: 0.02,
             /**
              * The Maximum value for acceleration factor.
              * AF can reach a maximum of maxAccelerationFactor,
              * no matter how long the uptrend extends.
-             *
-             * @since 6.0.0
              */
             maxAccelerationFactor: 0.2,
             /**
@@ -298,22 +296,12 @@ H.seriesType('psar', 'sma',
 );
 
 /**
- * A `PSAR` series. If the [type](#series.psar.type) option is not
- * specified, it is inherited from [chart.type](#chart.type).
+ * A `PSAR` series. If the [type](#series.psar.type) option is not specified, it
+ * is inherited from [chart.type](#chart.type).
  *
  * @extends   series,plotOptions.psar
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
  * @product   highstock
+ * @excluding dataParser, dataURL
  * @apioption series.psar
- */
-
-/**
- * An array of data points for the series. For the `psar` series type,
- * points are calculated dynamically.
- *
- * @extends   series.line.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.psar.data
  */

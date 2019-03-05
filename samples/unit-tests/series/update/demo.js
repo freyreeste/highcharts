@@ -1,4 +1,3 @@
-
 QUnit.test('Series.update', function (assert) {
 
     var chart = Highcharts.chart('container', {
@@ -250,15 +249,26 @@ QUnit.test('Series.update and mouse interaction', function (assert) {
                     events: {
                         mouseOver: function () {
                             this.update({
-                                dataLabels: { enabled: true }, events: {
+                                dataLabels: {
+                                    enabled: true
+                                },
+                                events: {
                                     mouseOut: function () {
-                                        this.update({ dataLabels: { enabled: false } });
+                                        this.update({
+                                            dataLabels: {
+                                                enabled: false
+                                            }
+                                        });
                                     }
                                 }
                             });
                         },
                         mouseOut: function () {
-                            this.update({ dataLabels: { enabled: false } });
+                            this.update({
+                                dataLabels: {
+                                    enabled: false
+                                }
+                            });
                         }
                     }
                 }
@@ -285,6 +295,76 @@ QUnit.test('Series.update and mouse interaction', function (assert) {
         'Data labels should not be enabled'
     );
 
+});
+
+QUnit.test('Series.update and events', assert => {
+    const clicks = {
+        option: 0,
+        added: 0
+    };
+    let updated = false;
+    const chart = Highcharts.chart('container', {
+        chart: {
+            width: 400,
+            height: 300
+        },
+        series: [{
+            data: [3, 1, 2],
+            type: 'column',
+
+            // Add an event by option
+            events: {
+                click: () => clicks.option++
+            },
+            animation: false
+        }]
+    });
+
+    // Add an event programmatically
+    Highcharts.addEvent(chart.series[0], 'click', () => clicks.added++);
+    Highcharts.addEvent(chart.series[0], 'afterUpdate', () => {
+        updated = true;
+    });
+
+    const controller = new TestController(chart);
+    controller.moveTo(100, 120);
+    controller.click(100, 120);
+
+    assert.strictEqual(
+        clicks.option,
+        1,
+        'The click event option should work'
+    );
+    assert.strictEqual(
+        clicks.added,
+        1,
+        'The added click handler should work'
+    );
+
+    // Run update with some arbitrary properties
+    chart.series[0].update({
+        colorByPoint: true,
+        dataLabels: {
+            enabled: true
+        }
+    });
+
+    controller.moveTo(100, 120);
+    controller.click(100, 120);
+    assert.strictEqual(
+        clicks.option,
+        2,
+        'The click event option should work after update'
+    );
+    assert.strictEqual(
+        clicks.added,
+        2,
+        'The added click handler should work after update'
+    );
+    assert.ok(
+        updated,
+        'The afterUpdate handler has run'
+    );
 });
 
 QUnit.test('Series.update and setData', function (assert) {
@@ -571,7 +651,7 @@ QUnit.test('Z index changed after update (#3094)', function (assert) {
                 pointPadding: -0.4
             }
         },
-        series: [ {
+        series: [{
             data: [1300],
             color: 'rgba(13,35,58,0.9)',
             index: 0,
@@ -590,7 +670,8 @@ QUnit.test('Z index changed after update (#3094)', function (assert) {
 
     controller.setPosition(
         (clientWidth / 2),
-        (clientHeight / 2));
+        (clientHeight / 2)
+    );
 
     var columnYValue = controller.getPosition().relatedTarget.point.y;
     assert.strictEqual(
@@ -610,7 +691,53 @@ QUnit.test('Z index changed after update (#3094)', function (assert) {
     );
     assert.strictEqual(
         chart.series[0].dataLabelsGroup.visibility,
-        "visible",
+        "inherit",
         "Data label should be visible"
+    );
+});
+
+QUnit.test('Wrong type for series config (#9680)', function (assert) {
+    assert.expect(0);
+
+    Highcharts.chart('container', {
+        series: {}
+    });
+});
+
+QUnit.test('series.update using altered original chart options', function (assert) {
+    var chartOptions = {
+            chart: {
+                renderTo: 'container'
+            },
+            plotOptions: {
+                series: {
+                    lineWidth: 10
+                }
+            },
+            series: [{
+                data: [1, 20, -3],
+                type: 'line'
+            }]
+        },
+        chart = new Highcharts.Chart(chartOptions);
+
+    chartOptions.series[0].lineWidth = 10;
+    chart.series[0].update(chartOptions.series[0]);
+
+    assert.strictEqual(
+        chart.series[0].userOptions.lineWidth,
+        10,
+        'New options is added - passes through cleanRecursively (#9762)'
+    );
+
+    chartOptions.plotOptions.series.lineWidth = 1;
+    chart.update({
+        plotOptions: chartOptions.plotOptions
+    });
+
+    assert.strictEqual(
+        chart.series[0].options.lineWidth,
+        10,
+        'Series level option survived after plotOptions.series update (#9762)'
     );
 });

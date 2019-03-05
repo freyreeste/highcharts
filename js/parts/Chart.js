@@ -1,5 +1,5 @@
 /**
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -26,6 +26,11 @@
  *
  * @param {Highcharts.TitleOptions} titleOptions
  *        Options to modify.
+ *
+ * @param {boolean} [redraw=true]
+ *        Whether to redraw the chart after the title is altered. If doing more
+ *        operations on the chart, it is a good idea to set redraw to false and
+ *        call {@link Chart#redraw} after.
  */
 
 /**
@@ -42,6 +47,11 @@
  *
  * @param {Highcharts.SubtitleOptions} subtitleOptions
  *        Options to modify.
+ *
+ * @param {boolean} [redraw=true]
+ *        Whether to redraw the chart after the subtitle is altered. If doing
+ *        more operations on the chart, it is a good idea to set redraw to false
+ *        and call {@link Chart#redraw} after.
  */
 
 'use strict';
@@ -109,7 +119,7 @@ var addEvent = H.addEvent,
  * @param {Highcharts.ChartCallbackFunction} [callback]
  *        Function to run when the chart has loaded and and all external images
  *        are loaded. Defining a
- *        [chart.event.load](https://api.highcharts.com/highcharts/chart.events.load)
+ *        [chart.events.load](https://api.highcharts.com/highcharts/chart.events.load)
  *        handler is equivalent.
  */
 var Chart = H.Chart = function () {
@@ -141,7 +151,7 @@ var Chart = H.Chart = function () {
  * @param {Highcharts.ChartCallbackFunction} [callback]
  *        Function to run when the chart has loaded and and all external images
  *        are loaded. Defining a
- *        [chart.event.load](https://api.highcharts.com/highcharts/chart.events.load)
+ *        [chart.events.load](https://api.highcharts.com/highcharts/chart.events.load)
  *        handler is equivalent.
  *
  * @return {Highcharts.Chart}
@@ -231,6 +241,14 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
 
             // set back the series data
             options.series = userOptions.series = seriesOptions;
+
+            /**
+             * The original options given to the constructor or a chart factory
+             * like {@link Highcharts.chart} and {@link Highcharts.stockChart}.
+             *
+             * @name Highcharts.Chart#userOptions
+             * @type {Highcharts.Options}
+             */
             this.userOptions = userOptions;
 
             var optionsChart = options.chart;
@@ -251,8 +269,9 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
             this.isResizing = 0;
 
             /**
-             * The options structure for the chart. It contains members for
-             * the sub elements like series, legend, tooltip etc.
+             * The options structure for the chart after merging
+             * {@link #defaultOptions} and {@link #userOptions}. It contains
+             * members for the sub elements like series, legend, tooltip etc.
              *
              * @name Highcharts.Chart#options
              * @type {Highcharts.Options}
@@ -304,8 +323,14 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
 
             var chart = this;
 
-            // Add the chart to the global lookup
-            chart.index = charts.length;
+            /**
+             * Index position of the chart in the {@link Highcharts#charts}
+             * property.
+             *
+             * @name Highcharts.Chart#index
+             * @type {number}
+             */
+            chart.index = charts.length; // Add the chart to the global lookup
 
             charts.push(chart);
             H.chartCount++;
@@ -391,6 +416,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
     orderSeries: function (fromIndex) {
         var series = this.series,
             i = fromIndex || 0;
+
         for (; i < series.length; i++) {
             if (series[i]) {
                 series[i].index = i;
@@ -547,10 +573,6 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
             // set axes scales
             axes.forEach(function (axis) {
                 axis.updateNames();
-                // Update categories in a Gantt chart
-                if (axis.updateYNames) {
-                    axis.updateYNames();
-                }
                 axis.setScale();
             });
         }
@@ -570,6 +592,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
 
                 // Fire 'afterSetExtremes' only if extremes are set
                 var key = axis.min + ',' + axis.max;
+
                 if (axis.extKey !== key) { // #821, #4452
                     axis.extKey = key;
 
@@ -725,11 +748,18 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
      */
     getSelectedPoints: function () {
         var points = [];
+
         this.series.forEach(function (serie) {
-            // series.data - for points outside of viewed range (#6445)
-            points = points.concat((serie.data || []).filter(function (point) {
-                return point.selected;
-            }));
+            // For one-to-one points inspect series.data in order to retrieve
+            // points outside the visible range (#6445). For grouped data,
+            // inspect the generated series.points.
+            points = points.concat(
+                (serie[serie.hasGroupedData ? 'points' : 'data'] || []).filter(
+                    function (point) {
+                        return point.selected;
+                    }
+                )
+            );
         });
         return points;
     },
@@ -849,12 +879,12 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
                     0,
                     chartTitleOptions.useHTML
                 )
-                .attr({
-                    align: chartTitleOptions.align,
-                    'class': 'highcharts-' + name,
-                    zIndex: chartTitleOptions.zIndex || 4
-                })
-                .add();
+                    .attr({
+                        align: chartTitleOptions.align,
+                        'class': 'highcharts-' + name,
+                        zIndex: chartTitleOptions.zIndex || 4
+                    })
+                    .add();
 
                 // Update methods, shortcut to Chart.setTitle
                 chart[name].update = function (o) {
@@ -997,6 +1027,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
     temporaryDisplay: function (revert) {
         var node = this.renderTo,
             tempStyle;
+
         if (!revert) {
             while (node && node.style) {
 
@@ -1301,7 +1332,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
      *
      * @function Highcharts.Chart#reflow
      *
-     * @param {global.Event} e
+     * @param {global.Event} [e]
      *        Event arguments. Used primarily when the function is called
      *        internally as a response to window resize.
      */
@@ -1799,7 +1830,12 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
             i,
             value;
 
-
+        /**
+         * The flag is set to `true` if a series of the chart is inverted.
+         *
+         * @name Highcharts.Chart#inverted
+         * @type {boolean|undefined}
+         */
         ['inverted', 'angular', 'polar'].forEach(function (key) {
 
             // The default series type's class
@@ -1810,7 +1846,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
             value =
                 optionsChart[key] || // It is set in the options
                 (klass && klass.prototype[key]); // The default series class
-                    // requires it
+            // requires it
 
             // 4. Check if any the chart's series require it
             i = seriesOptions && seriesOptions.length;
@@ -1849,6 +1885,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
         // Apply new links
         chartSeries.forEach(function (series) {
             var linkedTo = series.options.linkedTo;
+
             if (isString(linkedTo)) {
                 if (linkedTo === ':previous') {
                     linkedTo = chart.series[series.index - 1];
@@ -1893,6 +1930,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
     renderLabels: function () {
         var chart = this,
             labels = chart.options.labels;
+
         if (labels.items) {
             labels.items.forEach(function (label) {
                 var style = extend(labels.style, label.style),
@@ -1908,9 +1946,9 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
                     x,
                     y
                 )
-                .attr({ zIndex: 2 })
-                .css(style)
-                .add();
+                    .attr({ zIndex: 2 })
+                    .css(style)
+                    .add();
 
             });
         }
@@ -1927,6 +1965,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
             axes = chart.axes,
             renderer = chart.renderer,
             options = chart.options,
+            correction = 0, // correction for X axis labels
             tempWidth,
             tempHeight,
             redoHorizontal,
@@ -1954,9 +1993,23 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
 
         // Record preliminary dimensions for later comparison
         tempWidth = chart.plotWidth;
-        // 21 is the most common correction for X axis labels
+
+        axes.some(function (axis) {
+            if (
+                axis.horiz &&
+                axis.visible &&
+                axis.options.labels.enabled &&
+                axis.series.length
+            ) {
+                // 21 is the most common correction for X axis labels
+                correction = 21;
+                return true;
+            }
+        });
+
         // use Math.max to prevent negative plotHeight
-        tempHeight = chart.plotHeight = Math.max(chart.plotHeight - 21, 0);
+        chart.plotHeight = Math.max(chart.plotHeight - correction, 0);
+        tempHeight = chart.plotHeight;
 
         // Get margins by pre-rendering axes
         axes.forEach(function (axis) {
@@ -2051,16 +2104,16 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
                 0,
                 0
             )
-            .addClass('highcharts-credits')
-            .on('click', function () {
-                if (credits.href) {
-                    win.location.href = credits.href;
-                }
-            })
-            .attr({
-                align: credits.position.align,
-                zIndex: 8
-            });
+                .addClass('highcharts-credits')
+                .on('click', function () {
+                    if (credits.href) {
+                        win.location.href = credits.href;
+                    }
+                })
+                .attr({
+                    align: credits.position.align,
+                    zIndex: 8
+                });
 
 
             if (!chart.styledMode) {
@@ -2196,9 +2249,11 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
         chart.getAxes();
 
         // Initialize the series
-        (options.series || []).forEach(function (serieOptions) {
-            chart.initSeries(serieOptions);
-        });
+        (H.isArray(options.series) ? options.series : []).forEach( // #9680
+            function (serieOptions) {
+                chart.initSeries(serieOptions);
+            }
+        );
 
         chart.linkSeries();
 

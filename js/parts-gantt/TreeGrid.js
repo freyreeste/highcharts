@@ -16,7 +16,8 @@ import Tree from './Tree.js';
 import mixinTreeSeries from '../mixins/tree-series.js';
 import '../modules/broken-axis.src.js';
 
-var argsToArray = function (args) {
+var addEvent = H.addEvent,
+    argsToArray = function (args) {
         return Array.prototype.slice.call(args, 1);
     },
     defined = H.defined,
@@ -42,46 +43,13 @@ var argsToArray = function (args) {
 var override = function (obj, methods) {
     var method,
         func;
+
     for (method in methods) {
         if (methods.hasOwnProperty(method)) {
             func = methods[method];
             wrap(obj, method, func);
         }
     }
-};
-
-/**
- * getCategoriesFromTree - getCategories based on a tree
- *
- * @private
- * @function getCategoriesFromTree
- *
- * @param {object} tree
- *        Root of tree to collect categories from
- *
- * @return {Array<string>}
- *         Array of categories
- */
-var getCategoriesFromTree = function (tree) {
-    var categories = [];
-    if (tree.data) {
-        categories.push(tree.data.name);
-    }
-    tree.children.forEach(function (child) {
-        categories = categories.concat(getCategoriesFromTree(child));
-    });
-    return categories;
-};
-
-var mapTickPosToNode = function (node, categories) {
-    var map = {},
-        name = node.data && node.data.name,
-        pos = categories.indexOf(name);
-    map[pos] = node;
-    node.children.forEach(function (child) {
-        extend(map, mapTickPosToNode(child, categories));
-    });
-    return map;
 };
 
 var getBreakFromNode = function (node, max) {
@@ -155,6 +123,7 @@ var getTickPositions = function (axis) {
 var isCollapsed = function (axis, node) {
     var breaks = (axis.options.breaks || []),
         obj = getBreakFromNode(node, axis.max);
+
     return breaks.some(function (b) {
         return b.from === obj.from && b.to === obj.to;
     });
@@ -181,6 +150,7 @@ var isCollapsed = function (axis, node) {
 var collapse = function (axis, node) {
     var breaks = (axis.options.breaks || []),
         obj = getBreakFromNode(node, axis.max);
+
     breaks.push(obj);
     return breaks;
 };
@@ -205,6 +175,7 @@ var collapse = function (axis, node) {
 var expand = function (axis, node) {
     var breaks = (axis.options.breaks || []),
         obj = getBreakFromNode(node, axis.max);
+
     // Remove the break from the axis breaks array.
     return breaks.reduce(function (arr, b) {
         if (b.to !== obj.to || b.from !== obj.from) {
@@ -237,8 +208,8 @@ var expand = function (axis, node) {
 var toggleCollapse = function (axis, node) {
     return (
         isCollapsed(axis, node) ?
-        expand(axis, node) :
-        collapse(axis, node)
+            expand(axis, node) :
+            collapse(axis, node)
     );
 };
 var renderLabelIcon = function (tick, params) {
@@ -263,8 +234,8 @@ var renderLabelIcon = function (tick, params) {
             width,
             height
         ))
-        .addClass('highcharts-label-icon')
-        .add(params.group);
+            .addClass('highcharts-label-icon')
+            .add(params.group);
     }
 
     // Set the new position, and show or hide
@@ -305,6 +276,7 @@ var onTickHover = function (label) {
 };
 var onTickHoverExit = function (label, options) {
     var css = defined(options.style) ? options.style : {};
+
     label.removeClass('highcharts-treegrid-node-active');
 
     if (!label.renderer.styledMode) {
@@ -312,6 +284,62 @@ var onTickHoverExit = function (label, options) {
             textDecoration: css.textDecoration
         });
     }
+};
+
+/**
+ * Builds the tree of categories and calculates its positions.
+ *
+ * @param {object} e Event object
+ * @param {object} e.target The chart instance which the event was fired on.
+ * @param {object[]} e.target.axes The axes of the chart.
+ */
+var onBeforeRender = function (e) {
+    var chart = e.target,
+        axes = chart.axes;
+
+    axes
+        .filter(function (axis) {
+            return axis.options.type === 'treegrid';
+        })
+        .forEach(function (axis) {
+            var labelOptions = axis.options && axis.options.labels,
+                removeFoundExtremesEvent;
+
+            // setScale is fired after all the series is initialized,
+            // which is an ideal time to update the axis.categories.
+            axis.updateYNames();
+
+            // Update yData now that we have calculated the y values
+            // TODO: it would be better to be able to calculate y values
+            // before Series.setData
+            axis.series.forEach(function (series) {
+                series.yData = series.options.data.map(function (data) {
+                    return data.y;
+                });
+            });
+
+            // Calculate the label options for each level in the tree.
+            axis.mapOptionsToLevel = getLevelOptions({
+                defaults: labelOptions,
+                from: 1,
+                levels: labelOptions.levels,
+                to: axis.tree.height
+            });
+
+            // Collapse all the nodes belonging to a point where collapsed
+            // equals true.
+            // Can be called from beforeRender, if getBreakFromNode removes
+            // its dependency on axis.max.
+            removeFoundExtremesEvent =
+                H.addEvent(axis, 'foundExtremes', function () {
+                    axis.collapsedNodes.forEach(function (node) {
+                        var breaks = collapse(axis, node);
+
+                        axis.setBreaks(breaks, false);
+                    });
+                    removeFoundExtremesEvent();
+                });
+        });
 };
 
 /**
@@ -354,6 +382,7 @@ var getTreeGridFromData = function (data, uniqueNames, numberOfSeries) {
             var gridNode = mapOfPosToGridNode[node.pos],
                 height = 0,
                 descendants = 0;
+
             gridNode.children.forEach(function (child) {
                 descendants += child.descendants + 1;
                 height = Math.max(child.height + 1, height);
@@ -371,8 +400,8 @@ var getTreeGridFromData = function (data, uniqueNames, numberOfSeries) {
                 parentNode = mapOfIdToNode[node.parent],
                 parentGridNode = (
                     isObject(parentNode) ?
-                    mapOfPosToGridNode[parentNode.pos] :
-                    null
+                        mapOfPosToGridNode[parentNode.pos] :
+                        null
                 ),
                 hasSameName = function (x) {
                     return x.name === name;
@@ -442,6 +471,7 @@ var getTreeGridFromData = function (data, uniqueNames, numberOfSeries) {
 
             nodes.forEach(function (node) {
                 var data = node.data;
+
                 if (isObject(data)) {
                     // Update point
                     data.y = start + data.seriesIndex;
@@ -493,10 +523,16 @@ var getTreeGridFromData = function (data, uniqueNames, numberOfSeries) {
 override(GridAxis.prototype, {
     init: function (proceed, chart, userOptions) {
         var axis = this,
-            removeFoundExtremesEvent,
             isTreeGrid = userOptions.type === 'treegrid';
+
         // Set default and forced options for TreeGrid
         if (isTreeGrid) {
+
+            // Add event for updating the categories of a treegrid.
+            // NOTE Preferably these events should be set on the axis.
+            addEvent(chart, 'beforeRender', onBeforeRender);
+            addEvent(chart, 'beforeRedraw', onBeforeRender);
+
             userOptions = merge({
                 // Default options
                 grid: {
@@ -580,43 +616,6 @@ override(GridAxis.prototype, {
         // which are sliced off this function's arguments
         proceed.apply(axis, [chart, userOptions]);
         if (isTreeGrid) {
-            H.addEvent(axis.chart, 'beforeRender', function () {
-                var labelOptions = axis.options && axis.options.labels;
-
-                // beforeRender is fired after all the series is initialized,
-                // which is an ideal time to update the axis.categories.
-                axis.updateYNames();
-
-                // Update yData now that we have calculated the y values
-                // TODO: it would be better to be able to calculate y values
-                // before Series.setData
-                axis.series.forEach(function (series) {
-                    series.yData = series.options.data.map(function (data) {
-                        return data.y;
-                    });
-                });
-
-                // Calculate the label options for each level in the tree.
-                axis.mapOptionsToLevel = getLevelOptions({
-                    defaults: labelOptions,
-                    from: 1,
-                    levels: labelOptions.levels,
-                    to: axis.tree.height
-                });
-
-                // Collapse all the nodes belonging to a point where collapsed
-                // equals true.
-                // Can be called from beforeRender, if getBreakFromNode removes
-                // its dependency on axis.max.
-                removeFoundExtremesEvent =
-                    H.addEvent(axis, 'foundExtremes', function () {
-                        axis.collapsedNodes.forEach(function (node) {
-                            var breaks = collapse(axis, node);
-                            axis.setBreaks(breaks, false);
-                        });
-                        removeFoundExtremesEvent();
-                    });
-            });
             axis.hasNames = true;
             axis.options.showLastLabel = true;
         }
@@ -636,14 +635,14 @@ override(GridAxis.prototype, {
             labelOptions = options && options.labels,
             indentation = (
                 labelOptions && isNumber(labelOptions.indentation) ?
-                options.labels.indentation :
-                0
+                    options.labels.indentation :
+                    0
             ),
             retVal = proceed.apply(axis, argsToArray(arguments)),
             isTreeGrid = axis.options.type === 'treegrid',
             treeDepth;
 
-        if (isTreeGrid) {
+        if (isTreeGrid && this.mapOfPosToGridNode) {
             treeDepth = axis.mapOfPosToGridNode[-1].height;
             retVal.width += indentation * (treeDepth - 1);
         }
@@ -727,7 +726,9 @@ override(GridAxis.prototype, {
 
             axis.tickmarkOffset = 0.5;
             axis.tickInterval = 1;
-            axis.tickPositions = getTickPositions(axis);
+            axis.tickPositions = this.mapOfPosToGridNode ?
+                getTickPositions(axis) :
+                [];
         } else {
             proceed.apply(axis, argsToArray(arguments));
         }
@@ -767,13 +768,13 @@ override(GridAxisTick.prototype, {
         if (isTreeGrid) {
             symbolOptions = (
                 lbOptions && isObject(lbOptions.symbol) ?
-                lbOptions.symbol :
-                {}
+                    lbOptions.symbol :
+                    {}
             );
             indentation = (
                 lbOptions && isNumber(lbOptions.indentation) ?
-                lbOptions.indentation :
-                0
+                    lbOptions.indentation :
+                    0
             );
             mapOfPosToGridNode = axis.mapOfPosToGridNode;
             node = mapOfPosToGridNode && mapOfPosToGridNode[pos];
@@ -801,8 +802,8 @@ override(GridAxisTick.prototype, {
             ),
             symbolOptions = (
                 labelOptions && isObject(labelOptions.symbol) ?
-                labelOptions.symbol :
-                {}
+                    labelOptions.symbol :
+                    {}
             ),
             node = mapOfPosToGridNode && mapOfPosToGridNode[pos],
             level = node && node.depth,
@@ -899,6 +900,7 @@ extend(GridAxisTick.prototype, /** @lends Highcharts.Tick.prototype */{
             pos = tick.pos,
             node = axis.mapOfPosToGridNode[pos],
             breaks = collapse(axis, node);
+
         axis.setBreaks(breaks, pick(redraw, true));
     },
     /**
@@ -919,6 +921,7 @@ extend(GridAxisTick.prototype, /** @lends Highcharts.Tick.prototype */{
             pos = tick.pos,
             node = axis.mapOfPosToGridNode[pos],
             breaks = expand(axis, node);
+
         axis.setBreaks(breaks, pick(redraw, true));
     },
     /**
@@ -940,6 +943,7 @@ extend(GridAxisTick.prototype, /** @lends Highcharts.Tick.prototype */{
             pos = tick.pos,
             node = axis.mapOfPosToGridNode[pos],
             breaks = toggleCollapse(axis, node);
+
         axis.setBreaks(breaks, pick(redraw, true));
     }
 });

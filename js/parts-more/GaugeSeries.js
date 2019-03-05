@@ -1,5 +1,5 @@
-/**
- * (c) 2010-2018 Torstein Honsi
+/* *
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -58,75 +58,28 @@ seriesType('gauge', 'line', {
      * Data labels for the gauge. For gauges, the data labels are enabled
      * by default and shown in a bordered box below the point.
      *
-     * @extends plotOptions.series.dataLabels
      * @since   2.3.0
      * @product highcharts
      */
     dataLabels: {
-
-        /**
-         * Enable or disable the data labels.
-         *
-         * @since   2.3.0
-         * @product highcharts highmaps
-         */
-        enabled: true,
-
-        defer: false,
-
-        /**
-         * The y position offset of the label relative to the center of the
-         * gauge.
-         *
-         * @since   2.3.0
-         * @product highcharts highmaps
-         */
-        y: 15,
-
-        /**
-         * The border radius in pixels for the gauge's data label.
-         *
-         * @since   2.3.0
-         * @product highcharts highmaps
-         */
+        /** @ignore-option */
+        borderColor: '${palette.neutralColor20}',
+        /** @ignore-option */
         borderRadius: 3,
-
-        crop: false,
-
-        /**
-         * The vertical alignment of the data label.
-         *
-         * @product highcharts highmaps
-         */
-        verticalAlign: 'top',
-
-        /**
-         * The Z index of the data labels. A value of 2 display them behind
-         * the dial.
-         *
-         * @since   2.1.5
-         * @product highcharts highmaps
-         */
-        zIndex: 2,
-
-        /**
-         * The border width in pixels for the gauge data label.
-         *
-         * @since   2.3.0
-         * @product highcharts highmaps
-         */
+        /** @ignore-option */
         borderWidth: 1,
-
-        /**
-         * The border color for the data label.
-         *
-         * @type    {Highcharts.ColorString}
-         * @default #cccccc
-         * @since   2.3.0
-         * @product highcharts highmaps
-         */
-        borderColor: '${palette.neutralColor20}'
-
+        /** @ignore-option */
+        crop: false,
+        /** @ignore-option */
+        defer: false,
+        /** @ignore-option */
+        enabled: true,
+        /** @ignore-option */
+        verticalAlign: 'top',
+        /** @ignore-option */
+        y: 15,
+        /** @ignore-option */
+        zIndex: 2
     },
 
     /**
@@ -219,7 +172,7 @@ seriesType('gauge', 'line', {
      * @sample {highcharts} highcharts/plotoptions/gauge-dial/
      *         Dial options demonstrated
      *
-     * @type      {Highcharts.ColorString|Highcharts.GradientColorObject}
+     * @type      {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
      * @default   #000000
      * @since     2.3.0
      * @product   highcharts
@@ -333,7 +286,7 @@ seriesType('gauge', 'line', {
      * @sample {highcharts} highcharts/plotoptions/gauge-pivot/
      *         Pivot options demonstrated
      *
-     * @type      {Highcharts.ColorString|Highcharts.GradientColorObject}
+     * @type      {Highcharts.ColorString|Highcharts.GradientColorObject|Highcharts.PatternObject}
      * @default   #000000
      * @since     2.3.0
      * @product   highcharts
@@ -580,43 +533,37 @@ seriesType('gauge', 'line', {
  * An array of data points for the series. For the `gauge` series type,
  * points can be given in the following ways:
  *
- * 1.  An array of numerical values. In this case, the numerical values
- * will be interpreted as `y` options. Example:
+ * 1. An array of numerical values. In this case, the numerical values will be
+ *    interpreted as `y` options. Example:
+ *    ```js
+ *    data: [0, 5, 3, 5]
+ *    ```
  *
- *  ```js
- *  data: [0, 5, 3, 5]
- *  ```
- *
- * 2.  An array of objects with named values. The following snippet shows only a
- * few settings, see the complete options set below. If the total number of data
- * points exceeds the series' [turboThreshold](#series.gauge.turboThreshold),
- * this option is not available.
- *
- *  ```js
- *     data: [{
- *     y: 6,
- *     name: "Point2",
- *     color: "#00FF00"
- * }, {
- *     y: 8,
- *     name: "Point1",
- *     color: "#FF00FF"
- * }]</pre>
+ * 2. An array of objects with named values. The following snippet shows only a
+ *    few settings, see the complete options set below. If the total number of
+ *    data points exceeds the series'
+ *    [turboThreshold](#series.gauge.turboThreshold), this option is not
+ *    available.
+ *    ```js
+ *    data: [{
+ *        y: 6,
+ *        name: "Point2",
+ *        color: "#00FF00"
+ *    }, {
+ *        y: 8,
+ *        name: "Point1",
+ *       color: "#FF00FF"
+ *    }]
+ *    ```
  *
  * The typical gauge only contains a single data value.
  *
  * @sample {highcharts} highcharts/chart/reflow-true/
  *         Numerical values
- * @sample {highcharts} highcharts/series/data-array-of-arrays/
- *         Arrays of numeric x and y
- * @sample {highcharts} highcharts/series/data-array-of-arrays-datetime/
- *         Arrays of datetime x and y
- * @sample {highcharts} highcharts/series/data-array-of-name-value/
- *         Arrays of point.name and y
  * @sample {highcharts} highcharts/series/data-array-of-objects/
  *         Config objects
  *
- * @type      {Array<number|*>}
+ * @type      {Array<number|null|*>}
  * @extends   series.line.data
  * @excluding drilldown, marker, x
  * @product   highcharts

@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -36,7 +41,9 @@ function getStandardDeviation(arr, index, isOHLC, mean) {
  *
  * @augments Highcharts.Series
  */
-H.seriesType('bb', 'sma',
+H.seriesType(
+    'bb',
+    'sma',
     /**
      * Bollinger bands (BB). This series requires the `linkedTo` option to be
      * set and should be loaded after the `stock/indicators/indicators.js` file.
@@ -54,28 +61,20 @@ H.seriesType('bb', 'sma',
             period: 20,
             /**
              * Standard deviation for top and bottom bands.
-             *
-             * @since 6.0.0
              */
             standardDeviation: 2,
             index: 3
         },
         /**
          * Bottom line options.
-         *
-         * @since 6.0.0
          */
         bottomLine: {
             /**
              * Styles for a bottom line.
-             *
-             * @since 6.0.0
              */
             styles: {
                 /**
                  * Pixel width of the line.
-                 *
-                 * @since 6.0.0
                  */
                 lineWidth: 1,
                 /**
@@ -83,7 +82,6 @@ H.seriesType('bb', 'sma',
                  * [plotOptions.bb.color](#plotOptions.bb.color).
                  *
                  * @type  {Highcharts.ColorString}
-                 * @since 6.0.0
                  */
                 lineColor: undefined
             }
@@ -92,7 +90,6 @@ H.seriesType('bb', 'sma',
          * Top line options.
          *
          * @extends plotOptions.bb.bottomLine
-         * @since   6.0.0
          */
         topLine: {
             styles: {
@@ -112,7 +109,11 @@ H.seriesType('bb', 'sma',
         dataGrouping: {
             approximation: 'averages'
         }
-    }, /** @lends Highcharts.Series.prototype */ H.merge(multipleLinesMixin, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    H.merge(multipleLinesMixin, {
         pointArrayMap: ['top', 'middle', 'bottom'],
         pointValKey: 'middle',
         nameComponents: ['period', 'standardDeviation'],
@@ -202,17 +203,7 @@ H.seriesType('bb', 'sma',
  *
  * @extends   series,plotOptions.bb
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
+ * @excluding dataParser, dataURL
  * @product   highstock
  * @apioption series.bb
- */
-
-/**
- * An array of data points for the series. For the `bb` series type,
- * points are calculated dynamically.
- *
- * @extends   series.line.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.bb.data
  */

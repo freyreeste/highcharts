@@ -1,5 +1,5 @@
 /**
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -35,28 +35,29 @@ var addEvent = H.addEvent,
     setAnimation = H.setAnimation,
     splat = H.splat;
 
+
 // Remove settings that have not changed, to avoid unnecessary rendering or
 // computing (#9197)
 H.cleanRecursively = function (newer, older) {
-    var total = 0,
-        removed = 0;
+    var result = {};
+
     objectEach(newer, function (val, key) {
+        var ob;
+
+        // Dive into objects
         if (isObject(newer[key], true) && older[key]) {
-            if (H.cleanRecursively(newer[key], older[key])) {
-                delete newer[key];
+            ob = H.cleanRecursively(newer[key], older[key]);
+            if (Object.keys(ob).length) {
+                result[key] = ob;
             }
-        } else if (
-            !isObject(newer[key]) &&
-            newer[key] === older[key]
-        ) {
-            delete newer[key];
-            removed++;
+
+        // Arrays or primitives are copied directly
+        } else if (isObject(newer[key]) || newer[key] !== older[key]) {
+            result[key] = newer[key];
         }
-        total++;
     });
 
-    // Return true if all sub nodes are removed
-    return total === removed;
+    return result;
 };
 
 // Extend the Chart prototype for dynamic methods
@@ -76,7 +77,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
      *
      * @function Highcharts.Chart#addSeries
      *
-     * @param {Highcharts.SeriesOptions} options
+     * @param {Highcharts.SeriesOptionsType} options
      *        The config options for the series.
      *
      * @param {boolean} [redraw=true]
@@ -179,7 +180,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
      *
      * @function Highcharts.Chart#showLoading
      *
-     * @param {string} str
+     * @param {string} [str]
      *        An optional text to show in the loading label instead of the
      *        default one. The default text is set in
      *        [lang.loading](http://api.highcharts.com/highcharts/lang.loading).
@@ -353,6 +354,9 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
      * adding and removing items from the collection. Read more under the
      * parameter description below.
      *
+     * Note that when changing series data, `chart.update` may mutate the passed
+     * data options.
+     *
      * See also the
      * [responsive option set](https://api.highcharts.com/highcharts/responsive).
      * Switching between `responsive.rules` basically runs `chart.update` under
@@ -404,11 +408,19 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
 
         fireEvent(chart, 'update', { options: options });
 
-        H.cleanRecursively(options, chart.options);
+        // If there are responsive rules in action, undo the responsive rules
+        // before we apply the updated options and replay the responsive rules
+        // on top from the chart.redraw function (#9617).
+        if (!options.isResponsiveOptions) {
+            chart.setResponsive(false, true);
+        }
+
+        options = H.cleanRecursively(options, chart.options);
 
         // If the top-level chart option is present, some special updates are
         // required
         optionsChart = options.chart;
+
         if (optionsChart) {
 
             merge(true, chart.options.chart, optionsChart);
@@ -520,6 +532,7 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
                         defined(newOptions.id) &&
                         chart.get(newOptions.id)
                     ) || chart[coll][indexMap ? indexMap[i] : i];
+
                     if (item && item.coll === coll) {
                         item.update(newOptions, false);
 
@@ -584,14 +597,26 @@ extend(Chart.prototype, /** @lends Highcharts.Chart.prototype */ {
         // Update size. Redraw is forced.
         newWidth = optionsChart && optionsChart.width;
         newHeight = optionsChart && optionsChart.height;
-        if ((isNumber(newWidth) && newWidth !== chart.chartWidth) ||
-                (isNumber(newHeight) && newHeight !== chart.chartHeight)) {
+        if (H.isString(newHeight)) {
+            newHeight = H.relativeLength(
+                newHeight,
+                newWidth || chart.chartWidth
+            );
+        }
+        if (
+            (isNumber(newWidth) && newWidth !== chart.chartWidth) ||
+            (isNumber(newHeight) && newHeight !== chart.chartHeight)
+        ) {
             chart.setSize(newWidth, newHeight, animation);
         } else if (pick(redraw, true)) {
             chart.redraw(animation);
         }
 
-        fireEvent(chart, 'afterUpdate', { options: options });
+        fireEvent(chart, 'afterUpdate', {
+            options: options,
+            redraw: redraw,
+            animation: animation
+        });
 
     },
 
@@ -692,9 +717,9 @@ extend(Point.prototype, /** @lends Highcharts.Point.prototype */ {
             // is an object, use point options, otherwise use raw options
             // (#4701, #4916).
             seriesOptions.data[i] = (
-                    isObject(seriesOptions.data[i], true) ||
+                isObject(seriesOptions.data[i], true) ||
                     isObject(options, true)
-                ) ?
+            ) ?
                 point.options :
                 pick(options, seriesOptions.data[i]);
 
@@ -963,14 +988,14 @@ extend(Series.prototype, /** @lends Series.prototype */ {
      *
      * @fires Highcharts.Series#event:remove
      */
-    remove: function (redraw, animation, withEvent) {
+    remove: function (redraw, animation, withEvent, keepEvents) {
         var series = this,
             chart = series.chart;
 
         function remove() {
 
             // Destroy elements
-            series.destroy();
+            series.destroy(keepEvents);
             series.remove = null; // Prevent from doing again (#9097)
 
             // Redraw
@@ -993,9 +1018,11 @@ extend(Series.prototype, /** @lends Series.prototype */ {
     /**
      * Update the series with a new set of options. For a clean and precise
      * handling of new options, all methods and elements from the series are
-     * removed, and it is initiated from scratch. Therefore, this method is more
-     * performance expensive than some other utility methods like {@link
+     * removed, and it is initialized from scratch. Therefore, this method is
+     * more performance expensive than some other utility methods like {@link
      * Series#setData} or {@link Series#setVisible}.
+     *
+     * Note that `Series.update` may mutate the passed `data` options.
      *
      * @sample highcharts/members/series-update/
      *         Updating series options
@@ -1004,7 +1031,7 @@ extend(Series.prototype, /** @lends Series.prototype */ {
      *
      * @function Highcharts.Series#update
      *
-     * @param {Highcharts.SeriesOptions} options
+     * @param {Highcharts.SeriesOptionsType} options
      *        New options that will be merged with the series' existing options.
      *
      * @param {boolean} [redraw=true]
@@ -1014,22 +1041,22 @@ extend(Series.prototype, /** @lends Series.prototype */ {
      *
      * @fires Highcharts.Series#event:afterUpdate
      */
-    update: function (newOptions, redraw) {
+    update: function (options, redraw) {
 
-        H.cleanRecursively(newOptions, this.userOptions);
+        options = H.cleanRecursively(options, this.userOptions);
 
         var series = this,
             chart = series.chart,
             // must use user options when changing type because series.options
             // is merged in with type specific plotOptions
             oldOptions = series.userOptions,
-            oldType = series.oldType || series.type,
+            initialType = series.initialType || series.type,
             newType = (
-                newOptions.type ||
+                options.type ||
                 oldOptions.type ||
                 chart.options.chart.type
             ),
-            proto = seriesTypes[oldType].prototype,
+            initialSeriesProto = seriesTypes[initialType].prototype,
             n,
             groups = [
                 'group',
@@ -1051,7 +1078,7 @@ extend(Series.prototype, /** @lends Series.prototype */ {
                 'name',
                 'turboThreshold'
             ],
-            keys = Object.keys(newOptions),
+            keys = Object.keys(options),
             doSoftUpdate = keys.length > 0;
 
         // Running Series.update to update the data only is an intuitive usage,
@@ -1067,11 +1094,11 @@ extend(Series.prototype, /** @lends Series.prototype */ {
             }
         });
         if (doSoftUpdate) {
-            if (newOptions.data) {
-                this.setData(newOptions.data, false);
+            if (options.data) {
+                this.setData(options.data, false);
             }
-            if (newOptions.name) {
-                this.setName(newOptions.name, false);
+            if (options.name) {
+                this.setName(options.name, false);
             }
         } else {
 
@@ -1083,23 +1110,23 @@ extend(Series.prototype, /** @lends Series.prototype */ {
             });
 
             // Do the merge, with some forced options
-            newOptions = merge(oldOptions, animation, {
+            options = merge(oldOptions, animation, {
                 index: series.index,
                 pointStart: pick(
                     oldOptions.pointStart, // when updating from blank (#7933)
                     series.xData[0] // when updating after addPoint
                 )
-            }, { data: series.options.data }, newOptions);
+            }, { data: series.options.data }, options);
 
             // Destroy the series and delete all properties. Reinsert all
             // methods and properties from the new type prototype (#2270,
             // #3719).
-            series.remove(false, null, false);
-            for (n in proto) {
+            series.remove(false, null, false, true);
+            for (n in initialSeriesProto) {
                 series[n] = undefined;
             }
-            if (seriesTypes[newType || oldType]) {
-                extend(series, seriesTypes[newType || oldType].prototype);
+            if (seriesTypes[newType || initialType]) {
+                extend(series, seriesTypes[newType || initialType].prototype);
             } else {
                 H.error(17, true, chart);
             }
@@ -1109,21 +1136,21 @@ extend(Series.prototype, /** @lends Series.prototype */ {
                 series[prop] = preserve[prop];
             });
 
-            series.init(chart, newOptions);
+            series.init(chart, options);
 
             // Update the Z index of groups (#3380, #7397)
-            if (newOptions.zIndex !== oldOptions.zIndex) {
+            if (options.zIndex !== oldOptions.zIndex) {
                 groups.forEach(function (groupName) {
                     if (series[groupName]) {
                         series[groupName].attr({
-                            zIndex: newOptions.zIndex
+                            zIndex: options.zIndex
                         });
                     }
                 });
             }
 
 
-            series.oldType = oldType;
+            series.initialType = initialType;
             chart.linkSeries(); // Links are lost in series.remove (#3028)
 
         }
@@ -1164,6 +1191,11 @@ extend(Axis.prototype, /** @lends Highcharts.Axis.prototype */ {
      * @param {Highcharts.XAxisOptions|Highcharts.YAxisOptions|Highcharts.ZAxisOptions} options
      *        The new options that will be merged in with existing options on
      *        the axis.
+     *
+     * @param {boolean} [redraw=true]
+     *        Whether to redraw the chart after the axis is altered. If doing
+     *        more operations on the chart, it is a good idea to set redraw to
+     *        false and call {@link Chart#redraw} after.
      */
     update: function (options, redraw) {
         var chart = this.chart,

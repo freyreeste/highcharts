@@ -19,6 +19,13 @@ QUnit.test(
                 }]
             });
 
+        // Check if there is only one bubble-legend
+        assert.strictEqual(
+            chart.legend.allItems.length === 2,
+            true,
+            'Bubble legend correctly added with map module (#10101)'
+        );
+
         chart.legend.update({
             bubbleLegend: {
                 legendIndex: 1
@@ -72,3 +79,28 @@ QUnit.test(
         );
     }
 );
+
+QUnit.test('Negative values (#9678)', function (assert) {
+
+    assert.expect(0); // Only expect it not to fail
+    Highcharts.chart('container', {
+
+        chart: {
+            type: 'bubble'
+        },
+
+        legend: {
+            bubbleLegend: {
+                enabled: true
+            }
+        },
+
+        series: [{
+            data: [
+                { x: 1, y: 1, z: -1 },
+                { x: 2, y: 2, z: -2 }
+            ]
+        }]
+
+    });
+});

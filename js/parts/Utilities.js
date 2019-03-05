@@ -1,18 +1,10 @@
-/**
- * (c) 2010-2018 Torstein Honsi
+/* *
  *
- * License: www.highcharts.com/license
- */
-
-/**
- * Reference to the global SVGElement class as a workaround for a name conflict
- * in the Highcharts namespace.
+ *  (c) 2010-2019 Torstein Honsi
  *
- * @global
- * @typedef {global.SVGElement} GlobalSVGElement
+ *  License: www.highcharts.com/license
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/SVGElement
- */
+ * */
 
 /**
  * An animation configuration. Animation configurations can also be defined as
@@ -21,6 +13,10 @@
  *
  * @interface Highcharts.AnimationOptionsObject
  *//**
+ * A callback function to exectute when the animation finishes.
+ * @name Highcharts.AnimationOptionsObject#complete
+ * @type {Function|undefined}
+ *//**
  * The animation duration in milliseconds.
  * @name Highcharts.AnimationOptionsObject#duration
  * @type {number}
@@ -28,10 +24,6 @@
  * The name of an easing function as defined on the `Math` object.
  * @name Highcharts.AnimationOptionsObject#easing
  * @type {string|undefined}
- *//**
- * A callback function to exectute when the animation finishes.
- * @name Highcharts.AnimationOptionsObject#complete
- * @type {Function|undefined}
  *//**
  * A callback function to execute on each step of each attribute or CSS property
  * that's being animated. The first argument contains information about the
@@ -80,7 +72,7 @@
  *//**
  * Style of the mouse cursor when resting over the element.
  * @name Highcharts.CSSObject#cursor
- * @type {Highcharts.CursorType|undefined}
+ * @type {Highcharts.CursorValue|undefined}
  *//**
  * Font family of the element text. Multiple values have to be in decreasing
  * preference order and separated by comma.
@@ -136,12 +128,12 @@
  * @name Highcharts.CSSObject#textOverflow
  * @type {string|undefined}
  *//**
- * Animated transition of selected element properties.
- * @name Highcharts.CSSObject#transition
- * @type {string|undefined}
- *//**
  * Top spacing of the element relative to the parent element.
  * @name Highcharts.CSSObject#top
+ * @type {string|undefined}
+ *//**
+ * Animated transition of selected element properties.
+ * @name Highcharts.CSSObject#transition
  * @type {string|undefined}
  *//**
  * Line break style of the element text.
@@ -156,7 +148,13 @@
 /**
  * All possible cursor styles.
  *
- * @typedef {"alias"|"all-scroll"|"auto"|"cell"|"col-resize"|"context-menu"|"copy"|"crosshair"|"default"|"e-resize"|"ew-resize"|"grab"|"grabbing"|"help"|"move"|"n-resize"|"ne-resize"|"nesw-resize"|"no-drop"|"none"|"not-allowed"|"ns-resize"|"nw-resize"|"nwse-resize"|"pointer"|"progress"|"row-resize"|"s-resize"|"se-resize"|"sw-resize"|"text"|"vertical-text"|"w-resize"|"wait"|"zoom-in"|"zoom-out"} Highcharts.CursorType
+ * @typedef {"alias"|"all-scroll"|"auto"|"cell"|"col-resize"|"context-menu"|"copy"|"crosshair"|"default"|"e-resize"|"ew-resize"|"grab"|"grabbing"|"help"|"move"|"n-resize"|"ne-resize"|"nesw-resize"|"no-drop"|"none"|"not-allowed"|"ns-resize"|"nw-resize"|"nwse-resize"|"pointer"|"progress"|"row-resize"|"s-resize"|"se-resize"|"sw-resize"|"text"|"vertical-text"|"w-resize"|"wait"|"zoom-in"|"zoom-out"} Highcharts.CursorValue
+ */
+
+/**
+ * All possible dash styles.
+ *
+ * @typedef {"Dash"|"DashDot"|"Dot"|"LongDash"|"LongDashDot"|"LongDashDotDot"|"ShortDash"|"ShortDashDot"|"ShortDashDotDot"|"ShortDot"|"Solid"} Highcharts.DashStyleValue
  */
 
 /**
@@ -169,28 +167,27 @@
  */
 
 /**
- * The iterator callback.
- *
- * @callback Highcharts.EachCallbackFunction<T>
- *
- * @param {T} item
- *        The array item.
- *
- * @param {number} index
- *        The item's index in the array.
- *
- * @param {Array<T>} arr
- *        The array that each is being applied to.
- */
-
-/**
  * The function callback to execute when the event is fired. The `this` context
  * contains the instance, that fired the event.
  *
- * @callback Highcharts.EventCallbackFunction
+ * @callback Highcharts.EventCallbackFunction<T>
+ *
+ * @param {T} this
  *
  * @param {Highcharts.Dictionary<*>} [eventArguments]
  *        Event arguments.
+ */
+
+/**
+ * The event options for adding function callback.
+ *
+ * @interface Highcharts.EventOptionsObject
+ *//**
+ * The order the event handler should be called. This opens for having one
+ * handler be called before another, independent of in which order they were
+ * added.
+ * @name Highcharts.EventOptionsObject#order
+ * @type {number}
  */
 
 /**
@@ -200,8 +197,10 @@
  * @callback Highcharts.FormatterCallbackFunction<T>
  *
  * @param {T} this
+ *        Context to format
  *
  * @return {string}
+ *         Formatted text
  */
 
 /**
@@ -217,24 +216,6 @@
  * @typedef {global.HTMLElement} Highcharts.HTMLDOMElement
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement
- */
-
-/**
- * Callback function to map the values in an array.
- *
- * @callback Highcharts.MapArrayCallbackFunction
- *
- * @param {*} value
- *        The value to replace.
- *
- * @param {number} index
- *        The index position of the value.
- *
- * @param {Array<*>} arr
- *        The array as a reference.
- *
- * @return {*}
- *         The new value as a replacement.
  */
 
 /**
@@ -268,20 +249,6 @@
  */
 
 /**
- * An object containing `x` and `y` properties for the position of an element.
- *
- * @interface Highcharts.PositionObject
- *//**
- * X position of the element.
- * @name Highcharts.PositionObject#x
- * @type {number}
- *//**
- * Y position of the element.
- * @name Highcharts.PositionObject#y
- * @type {number}
- */
-
-/**
  * If a number is given, it defines the pixel length. If a percentage string is
  * given, like for example `'50%'`, the setting defines a length relative to a
  * base size, for example the size of a container.
@@ -308,19 +275,19 @@
  * @interface Highcharts.SVGAttributes
  *//**
  * @name Highcharts.SVGAttributes#[key:string]
- * @type {boolean|number|string|Array<number|string>|undefined}
+ * @type {any}
  *//**
  * @name Highcharts.SVGAttributes#d
  * @type {string|Highcharts.SVGPathArray|undefined}
+ *//**
+ * @name Highcharts.SVGAttributes#fill
+ * @type {Highcharts.ColorString|undefined}
  *//**
  * @name Highcharts.SVGAttributes#inverted
  * @type {boolean|undefined}
  *//**
  * @name Highcharts.SVGAttributes#matrix
  * @type {Array<number>|undefined}
- *//**
- * @name Highcharts.SVGAttributes#stroke
- * @type {Highcharts.ColorString|undefined}
  *//**
  * @name Highcharts.SVGAttributes#rotation
  * @type {string|undefined}
@@ -336,6 +303,12 @@
  *//**
  * @name Highcharts.SVGAttributes#scaleY
  * @type {number|undefined}
+ *//**
+ * @name Highcharts.SVGAttributes#stroke
+ * @type {Highcharts.ColorString|undefined}
+ *//**
+ * @name Highcharts.SVGAttributes#style
+ * @type {string|Highcharts.CSSObject|undefined}
  *//**
  * @name Highcharts.SVGAttributes#translateX
  * @type {number|undefined}
@@ -408,11 +381,18 @@ var charts = H.charts,
  *
  * @param {boolean} [stop=false]
  *        Whether to throw an error or just log a warning in the console.
+ *
+ * @param {Highcharts.Chart} [chart]
+ *        Reference to the chart that causes the error. Used in 'debugger'
+ *        module to display errors directly on the chart.
+ *        Important note: This argument is undefined for errors that lack
+ *        access to the Chart instance.
  */
 H.error = function (code, stop, chart) {
     var msg = H.isNumber(code) ?
         'Highcharts error #' + code + ': www.highcharts.com/errors/' + code :
         code;
+
     if (chart) {
         H.fireEvent(chart, 'displayError', { code: code });
     }
@@ -475,8 +455,8 @@ H.Fx.prototype = {
                 startVal = parseFloat(start[i]);
                 ret[i] =
                     isNaN(startVal) ? // a letter instruction like M or L
-                            end[i] :
-                            now * (parseFloat(end[i] - startVal)) + startVal;
+                        end[i] :
+                        now * (parseFloat(end[i] - startVal)) + startVal;
 
             }
         // If animation is finished or length not matching, land on right value
@@ -671,6 +651,7 @@ H.Fx.prototype = {
         function sixify(arr) {
             var isOperator,
                 nextIsOperator;
+
             i = arr.length;
             while (i--) {
 
@@ -728,6 +709,7 @@ H.Fx.prototype = {
          */
         function append(arr, other) {
             var i = (fullLength - arr.length) / numParams;
+
             while (i > 0 && i--) {
 
                 // Pull out the slice that is going to be appended or inserted.
@@ -830,7 +812,6 @@ H.Fx.prototype = {
 }; // End of Fx prototype
 
 
-
 /**
  * Utility function to deep merge two or more objects and return a third object.
  * The merge function can also be used with a single object argument to create a
@@ -885,10 +866,9 @@ H.merge = function () {
             H.objectEach(original, function (value, key) {
 
                 // Copy the contents of objects, but not arrays or DOM nodes
-                if (
-                        H.isObject(value, true) &&
-                        !H.isClass(value) &&
-                        !H.isDOMElement(value)
+                if (H.isObject(value, true) &&
+                    !H.isClass(value) &&
+                    !H.isDOMElement(value)
                 ) {
                     copy[key] = doCopy(copy[key] || {}, value);
 
@@ -961,6 +941,7 @@ H.isString = function (s) {
  */
 H.isArray = function (obj) {
     var str = Object.prototype.toString.call(obj);
+
     return str === '[object Array]' || str === '[object Array Iterator]';
 };
 
@@ -1010,6 +991,7 @@ H.isDOMElement = function (obj) {
  */
 H.isClass = function (obj) {
     var c = obj && obj.constructor;
+
     return !!(
         H.isObject(obj, true) &&
         !H.isDOMElement(obj) &&
@@ -1046,6 +1028,7 @@ H.isNumber = function (n) {
  */
 H.erase = function (arr, item) {
     var i = arr.length;
+
     while (i--) {
         if (arr[i] === item) {
             arr.splice(i, 1);
@@ -1143,8 +1126,8 @@ H.splat = function (obj) {
  * @param {number} delay
  *        Delay in milliseconds.
  *
- * @param {*} [context]
- *        The context.
+ * @param {*} [parameter]
+ *        An optional parameter to send to the function callback.
  *
  * @return {number}
  *         An identifier for the timeout that can later be cleared with
@@ -1189,6 +1172,7 @@ H.clearTimeout = function (id) {
  */
 H.extend = function (a, b) {
     var n;
+
     if (!a) {
         a = {};
     }
@@ -1215,6 +1199,7 @@ H.pick = function () {
         i,
         arg,
         length = args.length;
+
     for (i = 0; i < length; i++) {
         arg = args[i];
         if (arg !== undefined && arg !== null) {
@@ -1269,6 +1254,7 @@ H.css = function (el, styles) {
 H.createElement = function (tag, attribs, styles, parent, nopad) {
     var el = doc.createElement(tag),
         css = H.css;
+
     if (attribs) {
         H.extend(el, attribs);
     }
@@ -1301,6 +1287,7 @@ H.createElement = function (tag, attribs, styles, parent, nopad) {
  */
 H.extendClass = function (parent, members) {
     var object = function () {};
+
     object.prototype = new parent(); // eslint-disable-line new-cap
     H.extend(object.prototype, members);
     return object;
@@ -1325,12 +1312,12 @@ H.extendClass = function (parent, members) {
  */
 H.pad = function (number, length, padder) {
     return new Array(
-            (length || 2) +
-            1 -
-            String(number)
-                .replace('-', '')
-                .length
-        ).join(padder || 0) + number;
+        (length || 2) +
+        1 -
+        String(number)
+            .replace('-', '')
+            .length
+    ).join(padder || 0) + number;
 };
 
 /**
@@ -1376,11 +1363,13 @@ H.relativeLength = function (value, base, offset) {
  */
 H.wrap = function (obj, method, func) {
     var proceed = obj[method];
+
     obj[method] = function () {
         var args = Array.prototype.slice.call(arguments),
             outerArgs = arguments,
             ctx = this,
             ret;
+
         ctx.proceed = function () {
             proceed.apply(ctx, arguments.length ? arguments : outerArgs);
         };
@@ -1390,7 +1379,6 @@ H.wrap = function (obj, method, func) {
         return ret;
     };
 };
-
 
 
 /**
@@ -1662,6 +1650,10 @@ H.normalizeTickInterval = function (
  *        The function to sort it with, like with regular Array.prototype.sort.
  */
 H.stableSort = function (arr, sortFunction) {
+
+    // @todo It seems like Chrome since v70 sorts in a stable way internally,
+    // plus all other browsers do it, so over time we may be able to remove this
+    // function
     var length = arr.length,
         sortValue,
         i;
@@ -1769,6 +1761,7 @@ H.destroyObjectProperties = function (obj, except) {
  */
 H.discardElement = function (element) {
     var garbageBin = H.garbageBin;
+
     // create a garbage bin element, not part of the DOM
     if (!garbageBin) {
         garbageBin = H.createElement('div');
@@ -2016,7 +2009,12 @@ H.getStyle = function (el, prop, toInt) {
                 Math.min(
                     el.offsetWidth,
                     el.scrollWidth,
-                    el.getBoundingClientRect ?
+                    (
+                        el.getBoundingClientRect &&
+                        // #9871, getBoundingClientRect doesn't handle
+                        // transforms, so avoid that
+                        H.getStyle(el, 'transform', false) === 'none'
+                    ) ?
                         Math.floor(el.getBoundingClientRect().width) : // #6427
                         Infinity
                 ) -
@@ -2024,7 +2022,9 @@ H.getStyle = function (el, prop, toInt) {
                 H.getStyle(el, 'padding-right')
             )
         );
-    } else if (prop === 'height') {
+    }
+
+    if (prop === 'height') {
         return Math.max(
             0, // #8377
             Math.min(el.offsetHeight, el.scrollHeight) -
@@ -2203,18 +2203,17 @@ H.objectEach = function (obj, fn, ctx) {
 /**
  * Iterate over an array.
  *
- * @function Highcharts.each<T>
- *
  * @deprecated
+ * @function Highcharts.each
  *
- * @param {Array<T>} arr
+ * @param {Array<*>} arr
  *        The array to iterate over.
  *
- * @param {Highcharts.EachCallbackFunction<T>} fn
+ * @param {Function} fn
  *        The iterator callback. It passes three arguments:
- *        * item - The array item.
- *        * index - The item's index in the array.
- *        * arr - The array that each is being applied to.
+ *        - `item`: The array item.
+ *        - `index`: The item's index in the array.
+ *        - `arr`: The array that each is being applied to.
  *
  * @param {*} [ctx]
  *        The context.
@@ -2223,45 +2222,43 @@ H.objectEach = function (obj, fn, ctx) {
 /**
  * Filter an array by a callback.
  *
+ * @deprecated
  * @function Highcharts.grep
  *
- * @deprecated
- *
- * @param {Array} arr
+ * @param {Array<*>} arr
  *        The array to filter.
  *
  * @param {Function} callback
  *        The callback function. The function receives the item as the first
  *        argument. Return `true` if the item is to be preserved.
  *
- * @return {Array}
+ * @return {Array<*>}
  *         A new, filtered array.
  */
 
 /**
  * Map an array by a callback.
  *
+ * @deprecated
  * @function Highcharts.map
  *
- * @deprecated
- *
- * @param {Array} arr
+ * @param {Array<*>} arr
  *        The array to map.
  *
  * @param {Function} fn
  *        The callback function. Return the new value for the new array.
  *
- * @return {Array}
+ * @return {Array<*>}
  *         A new array item with modified items.
  */
 
 /**
  * Reduce an array to a single value.
  *
- * @function Highcharts.reduce
  * @deprecated
+ * @function Highcharts.reduce
  *
- * @param {Array<*>} arr
+ * @param {Array} arr
  *        The array to reduce.
  *
  * @param {Function} fn
@@ -2280,10 +2277,10 @@ H.objectEach = function (obj, fn, ctx) {
  * Test whether at least one element in the array passes the test implemented by
  * the provided function.
  *
- * @function Highcharts.some
  * @deprecated
+ * @function Highcharts.some
  *
- * @param {Array} arr
+ * @param {Array<*>} arr
  *        The array to test
  *
  * @param {Function} fn
@@ -2313,25 +2310,20 @@ H.objectEach({
 /**
  * Add an event listener.
  *
- * @function Highcharts.addEvent
+ * @function Highcharts.addEvent<T>
  *
- * @param {*} el
+ * @param {T} el
  *        The element or object to add a listener to. It can be a
  *        {@link HTMLDOMElement}, an {@link SVGElement} or any other object.
  *
  * @param {string} type
  *        The event type.
  *
- * @param {Highcharts.EventCallbackFunction} fn
+ * @param {Highcharts.EventCallbackFunction<T>} fn
  *        The function callback to execute when the event is fired.
  *
- * @param {Highcharts.Dictionary<*>} options
- *        Event options
- *
- * @param {number} options.order
- *        The order the event handler should be called. This opens for having
- *        one handler be called before another, independent of in which order
- *        they were added.
+ * @param {Highcharts.EventOptionsObject} [options]
+ *        Options for adding the event.
  *
  * @return {Function}
  *         A callback function to remove the added event.
@@ -2384,16 +2376,16 @@ H.addEvent = function (el, type, fn, options) {
 /**
  * Remove an event that was added with {@link Highcharts#addEvent}.
  *
- * @function Highcharts.removeEvent
+ * @function Highcharts.removeEvent<T>
  *
- * @param {*} el
+ * @param {T} el
  *        The element to remove events on.
  *
  * @param {string} [type]
  *        The type of events to remove. If undefined, all events are removed
  *        from the element.
  *
- * @param {Function} [fn]
+ * @param {Highcharts.EventCallbackFunction<T>} [fn]
  *        The specific callback to remove. If undefined, all events that match
  *        the element and optionally the type are removed.
  */
@@ -2438,6 +2430,7 @@ H.removeEvent = function (el, type, fn) {
 
     ['protoEvents', 'hcEvents'].forEach(function (coll) {
         var eventCollection = el[coll];
+
         if (eventCollection) {
             if (type) {
                 events = eventCollection[type] || [];
@@ -2735,7 +2728,7 @@ if (win.jQuery) {
      * @param {Highcharts.ChartCallbackFunction} [callback]
      *        Function to run when the chart has loaded and and all external
      *        images are loaded. Defining a
-     *        [chart.event.load](https://api.highcharts.com/highcharts/chart.events.load)
+     *        [chart.events.load](https://api.highcharts.com/highcharts/chart.events.load)
      *        handler is equivalent.
      *
      * @return {JQuery}

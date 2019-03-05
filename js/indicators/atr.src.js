@@ -1,3 +1,8 @@
+/* *
+ *
+ *  License: www.highcharts.com/license
+ *
+ * */
 
 'use strict';
 
@@ -36,6 +41,7 @@ function populateAverage(points, xVal, yVal, i, period, prevATR) {
 
     return [x, y];
 }
+
 /**
  * The ATR series type.
  *
@@ -43,9 +49,11 @@ function populateAverage(points, xVal, yVal, i, period, prevATR) {
  * @class
  * @name Highcharts.seriesTypes.atr
  *
- * @augments seriesTypes.sma
+ * @augments Highcharts.Series
  */
-seriesType('atr', 'sma',
+seriesType(
+    'atr',
+    'sma',
     /**
      * Average true range indicator (ATR). This series requires `linkedTo`
      * option to be set.
@@ -62,7 +70,11 @@ seriesType('atr', 'sma',
         params: {
             period: 14
         }
-    }, {
+    },
+    /**
+     * @lends Highcharts.Series#
+     */
+    {
         getValues: function (series, params) {
             var period = params.period,
                 xVal = series.xData,
@@ -124,22 +136,16 @@ seriesType('atr', 'sma',
             };
         }
 
-    });
+    }
+);
 
 /**
- * A `ATR` series. If the [type](#series.atr.type) option is not
- * specified, it is inherited from [chart.type](#chart.type).
+ * A `ATR` series. If the [type](#series.atr.type) option is not specified, it
+ * is inherited from [chart.type](#chart.type).
  *
  * @extends   series,plotOptions.atr
  * @since     6.0.0
- * @excluding data, dataParser, dataURL
  * @product   highstock
+ * @excluding dataParser, dataURL
  * @apioption series.atr
- */
-
-/**
- * @extends   series.sma.data
- * @since     6.0.0
- * @product   highstock
- * @apioption series.atr.data
  */

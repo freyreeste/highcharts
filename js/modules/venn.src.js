@@ -1,21 +1,24 @@
-/**
-* (c) 2016 Highsoft AS
-* Authors: Jon Arild Nygard
-*
-* Layout algorithm by Ben Frederickson:
-* https://www.benfrederickson.com/better-venn-diagrams/
-*
-* License: www.highcharts.com/license
-*
-* This is an experimental Highcharts module which enables visualization
-* of a Venn Diagram.
-*/
+/* *
+ * Experimental Highcharts module which enables visualization of a Venn Diagram.
+ *
+ * (c) 2016-2019 Highsoft AS
+ *
+ * Authors: Jon Arild Nygard
+ *
+ * Layout algorithm by Ben Frederickson:
+ * https://www.benfrederickson.com/better-venn-diagrams/
+ *
+ * License: www.highcharts.com/license
+ */
+
 'use strict';
+
 import draw from '../mixins/draw-point.js';
 import geometry from '../mixins/geometry.js';
 import geometryCircles from '../mixins/geometry-circles.js';
 import H from '../parts/Globals.js';
 import '../parts/Series.js';
+
 var color = H.Color,
     extend = H.extend,
     getAreaOfIntersectionBetweenCircles =
@@ -32,7 +35,6 @@ var color = H.Color,
     isPointOutsideAllCircles = geometryCircles.isPointOutsideAllCircles,
     isString = H.isString,
     merge = H.merge,
-    round = geometryCircles.round,
     seriesType = H.seriesType;
 
 var objectValues = function objectValues(obj) {
@@ -43,11 +45,10 @@ var objectValues = function objectValues(obj) {
 
 /**
  * Calculates the area of overlap between a list of circles.
- *
- * TODO: add support for calculating overlap between more than 2 circles.
- *
- * @param {array} circles List of circles with their given positions.
- * @returns {number} Returns the area of overlap between all the circles.
+ * @private
+ * @todo add support for calculating overlap between more than 2 circles.
+ * @param {Array<object>} circles List of circles with their given positions.
+ * @return {number} Returns the area of overlap between all the circles.
  */
 var getOverlapBetweenCircles = function getOverlapBetweenCircles(circles) {
     var overlap = 0;
@@ -71,14 +72,15 @@ var getOverlapBetweenCircles = function getOverlapBetweenCircles(circles) {
 /**
  * Calculates the difference between the desired overlap and the actual overlap
  * between two circles.
- *
+ * @private
  * @param {object} mapOfIdToCircle Map from id to circle.
- * @param {array} relations List of relations to calculate the loss of.
- * @returns {number} Returns the loss between positions of the circles for the
+ * @param {Array<object>} relations List of relations to calculate the loss of.
+ * @return {number} Returns the loss between positions of the circles for the
  * given relations.
  */
 var loss = function loss(mapOfIdToCircle, relations) {
     var precision = 10e10;
+
     // Iterate all the relations and calculate their individual loss.
     return relations.reduce(function (totalLoss, relation) {
         var loss = 0;
@@ -94,6 +96,7 @@ var loss = function loss(mapOfIdToCircle, relations) {
             );
 
             var diff = wantedOverlap - actualOverlap;
+
             loss = Math.round((diff * diff) * precision) / precision;
         }
 
@@ -103,83 +106,83 @@ var loss = function loss(mapOfIdToCircle, relations) {
 };
 
 /**
- * A binary search function that takes an higher order function to opererate on
- * the values in the array before returning the result to compare with the value
- * that is searched for.
- * Useful to find a value that will give a result that meets some requirement.
+ * Finds the root of a given function. The root is the input value needed for
+ * a function to return 0.
  *
- * @param {array} arr The array to search for.
- * @param {*} value The value that is wanted to find.
- * @param {function} fn The higher order function to operate on the values in
- * the array.
- * @returns {number} Returns the index of the matching value, or -1 if the value
- * was not found.
+ * See https://en.wikipedia.org/wiki/Bisection_method#Algorithm
+ *
+ * TODO: Add unit tests.
+ *
+ * @param {function} f The function to find the root of.
+ * @param {number} a The lowest number in the search range.
+ * @param {number} b The highest number in the search range.
+ * @param {number} [tolerance=1e-10] The allowed difference between the returned
+ * value and root.
+ * @param {number} [maxIterations=100] The maximum iterations allowed.
  */
-var binarySearch = function binarySearch(arr, value, fn) {
-    var start = 0,
-        stop = arr.length - 1,
-        middle = Math.floor((start + stop) / 2),
-        res;
+var bisect = function bisect(f, a, b, tolerance, maxIterations) {
+    var fA = f(a),
+        fB = f(b),
+        nMax = maxIterations || 100,
+        tol = tolerance || 1e-10,
+        delta = b - a,
+        n = 1,
+        x, fX;
 
-    while ((res = fn(arr[middle], value)) !== value && start < stop) {
-        if (value < res) {
-            stop = middle - 1;
-        } else {
-            start = middle + 1;
-        }
-        middle = Math.floor((start + stop) / 2);
+    if (a >= b) {
+        throw new Error('a must be smaller than b.');
+    } else if (fA * fB > 0) {
+        throw new Error('f(a) and f(b) must have opposite signs.');
     }
 
-    return res === value ? middle : -1;
+    if (fA === 0) {
+        x = a;
+    } else if (fB === 0) {
+        x = b;
+    } else {
+        while (n++ <= nMax && fX !== 0 && delta > tol) {
+            delta = (b - a) / 2;
+            x = a + delta;
+            fX = f(x);
+
+            // Update low and high for next search interval.
+            if (fA * fX > 0) {
+                a = x;
+            } else {
+                b = x;
+            }
+        }
+    }
+
+    return x;
 };
 
 /**
- * Creates a list that contains a sequence of numbers ranging from start to end.
- *
- * TODO: add unit tests.
- *
- * @param {number} start The smallest number in the list.
- * @param {number} end The largest number in the list.
- * @param {number} [step=1] The increment between the values in the sequence.
- * @returns {array} Returns the sequence of numbers in the range from start to
- * end.
- */
-var range = function range(start, end, step) {
-    var s = step || 1,
-        length = Math.round((start + end) / s),
-        range = Array.apply(0, Array(length)).map(function (_, i) {
-            return i * s;
-        });
-    return range;
-};
-
-/**
- * Uses binary search to make a best guess of the ideal distance between two
- * circles too get the desired overlap.
+ * Uses the bisection method to make a best guess of the ideal distance between
+ * two circles too get the desired overlap.
  * Currently there is no known formula to calculate the distance from the area
- * of overlap, which makes the binary search a preferred method.
- *
+ * of overlap, which makes the bisection method preferred.
+ * @private
  * @param {number} r1 Radius of the first circle.
  * @param {number} r2 Radiues of the second circle.
  * @param {number} overlap The wanted overlap between the two circles.
- * @returns {number} Returns the distance needed to get the wanted overlap
+ * @return {number} Returns the distance needed to get the wanted overlap
  * between the two circles.
  */
 var getDistanceBetweenCirclesByOverlap =
 function getDistanceBetweenCirclesByOverlap(r1, r2, overlap) {
-    var error = 0.01,
-        maxDistance = r1 + r2,
-        list = range(0, maxDistance, 0.001),
-        index = binarySearch(list, 0, function (x) {
-            var actualOverlap = getOverlapBetweenCirclesByDistance(r1, r2, x),
-                diff = overlap - actualOverlap;
-            // If the difference is below accepted error then return overlap to
-            // confirm we have found the right value.
-            return (Math.abs(diff) < error) ? 0 : diff;
-        });
+    var maxDistance = r1 + r2,
+        distance = maxDistance;
 
-    // Round the resulting value to have two decimals.
-    return round(list[index], 14);
+    if (overlap > 0) {
+        distance = bisect(function (x) {
+            var actualOverlap = getOverlapBetweenCirclesByDistance(r1, r2, x);
+
+            // Return the differance between wanted and actual overlap.
+            return overlap - actualOverlap;
+        }, 0, maxDistance);
+    }
+    return distance;
 };
 
 var isSet = function (x) {
@@ -188,13 +191,12 @@ var isSet = function (x) {
 
 /**
  * Finds an optimal position for a given point.
- *
- * TODO: add unit tests.
- * TODO: add constraints to optimize the algorithm.
- *
- * @param {function} fn The function to test a point.
- * @param {array} initial The initial point to optimize.
- * @returns {array} Returns the opimized position of a point.
+ * @private
+ * @todo add unit tests.
+ * @todo add constraints to optimize the algorithm.
+ * @param {Function} fn The function to test a point.
+ * @param {Array<*>} initial The initial point to optimize.
+ * @return {Array<*>} Returns the opimized position of a point.
  */
 var nelderMead = function nelderMead(fn, initial) {
     var maxIterations = 100,
@@ -224,6 +226,7 @@ var nelderMead = function nelderMead(fn, initial) {
         // Create a set of extra points based on the initial.
         for (var i = 0; i < n; ++i) {
             var point = initial.slice();
+
             point[i] = point[i] ? point[i] * 1.05 : 0.001;
             point.fx = fn(point);
             simplex[i + 1] = point;
@@ -239,8 +242,10 @@ var nelderMead = function nelderMead(fn, initial) {
 
     var shrinkSimplex = function (simplex) {
         var best = simplex[0];
+
         return simplex.map(function (point) {
             var p = weightedSum(1 - pShrink, best, pShrink, point);
+
             p.fx = fn(p);
             return p;
         });
@@ -263,6 +268,7 @@ var nelderMead = function nelderMead(fn, initial) {
 
     var getPoint = function (centroid, worst, a, b) {
         var point = weightedSum(a, centroid, b, worst);
+
         point.fx = fn(point);
         return point;
     };
@@ -285,6 +291,7 @@ var nelderMead = function nelderMead(fn, initial) {
         if (reflected.fx < simplex[0].fx) {
             // If reflected point is the best, then possibly expand.
             var expanded = getPoint(centroid, worst, 1 + pExp, -pExp);
+
             simplex = updateSimplex(
                 simplex,
                 (expanded.fx < reflected.fx) ? expanded : reflected
@@ -293,6 +300,7 @@ var nelderMead = function nelderMead(fn, initial) {
             // If the reflected point is worse than the second worse, then
             // contract.
             var contracted;
+
             if (reflected.fx > worst.fx) {
                 // If the reflected is worse than the worst point, do a
                 // contraction
@@ -323,23 +331,24 @@ var nelderMead = function nelderMead(fn, initial) {
  * Calculates a margin for a point based on the iternal and external circles.
  * The margin describes if the point is well placed within the internal circles,
  * and away from the external
- *
- * TODO: add unit tests.
- *
+ * @private
+ * @todo add unit tests.
  * @param {object} point The point to evaluate.
- * @param {array} internal The internal circles.
- * @param {array} external The external circles.
- * @returns {number} Returns the margin.
+ * @param {Array<object>} internal The internal circles.
+ * @param {Array<object>} external The external circles.
+ * @return {number} Returns the margin.
  */
 var getMarginFromCircles =
 function getMarginFromCircles(point, internal, external) {
     var margin = internal.reduce(function (margin, circle) {
         var m = circle.r - getDistanceBetweenPoints(point, circle);
+
         return (m <= margin) ? m : margin;
-    }, Number.MAX_SAFE_INTEGER);
+    }, Number.MAX_VALUE);
 
     margin = external.reduce(function (margin, circle) {
         var m = getDistanceBetweenPoints(point, circle) - circle.r;
+
         return (m <= margin) ? m : margin;
     }, margin);
 
@@ -350,13 +359,12 @@ function getMarginFromCircles(point, internal, external) {
  * Finds the optimal label position by looking for a position that has a low
  * distance from the internal circles, and as large possible distane to the
  * external circles.
- *
- * TODO: Optimize the intial position.
- * TODO: Add unit tests.
- *
- * @param {array} internal Internal circles.
- * @param {array} external External circles.
- * @returns {object} Returns the found position.
+ * @private
+ * @todo Optimize the intial position.
+ * @todo Add unit tests.
+ * @param {Array<object>} internal Internal circles.
+ * @param {Array<object>} external External circles.
+ * @return {object} Returns the found position.
  */
 var getLabelPosition = function getLabelPosition(internal, external) {
     // Get the best label position within the internal circles.
@@ -373,19 +381,19 @@ var getLabelPosition = function getLabelPosition(internal, external) {
             { x: circle.x, y: circle.y - d }
         ]
         // Iterate the given points and return the one with the largest margin.
-        .reduce(function (best, point) {
-            var margin = getMarginFromCircles(point, internal, external);
+            .reduce(function (best, point) {
+                var margin = getMarginFromCircles(point, internal, external);
 
-            // If the margin better than the current best, then update best.
-            if (best.margin < margin) {
-                best.point = point;
-                best.margin = margin;
-            }
-            return best;
-        }, best);
+                // If the margin better than the current best, then update best.
+                if (best.margin < margin) {
+                    best.point = point;
+                    best.margin = margin;
+                }
+                return best;
+            }, best);
     }, {
         point: undefined,
-        margin: -Number.MAX_SAFE_INTEGER
+        margin: -Number.MAX_VALUE
     }).point;
 
     // Use nelder mead to optimize the initial label position.
@@ -419,15 +427,15 @@ var getLabelPosition = function getLabelPosition(internal, external) {
 
 /**
  * Calulates data label positions for a list of relations.
- *
- * TODO: add unit tests
- * NOTE: may be better suited as a part of the layout function.
- *
- * @param {array} relations The list of relations.
- * @returns {object} Returns a map from id to the data label position.
+ * @private
+ * @todo add unit tests
+ * @todo NOTE: may be better suited as a part of the layout function.
+ * @param {Array<object>} relations The list of relations.
+ * @return {object} Returns a map from id to the data label position.
  */
 var getLabelPositions = function getLabelPositions(relations) {
     var singleSets = relations.filter(isSet);
+
     return relations.reduce(function (map, relation) {
         if (relation.value) {
             var sets = relation.sets,
@@ -458,17 +466,15 @@ var getLabelPositions = function getLabelPositions(relations) {
 };
 
 /**
- * Takes an array of relations and adds the properties totalOverlap and
- * overlapping to each set.
- * The property totalOverlap is the sum of value for each relation where this
- * set is included.
- * The property overlapping is a map of how much this set is overlapping another
- * set.
+ * Takes an array of relations and adds the properties `totalOverlap` and
+ * `overlapping` to each set. The property `totalOverlap` is the sum of value
+ * for each relation where this set is included. The property `overlapping` is
+ * a map of how much this set is overlapping another set.
  * NOTE: This algorithm ignores relations consisting of more than 2 sets.
- *
- * @param {array} relations The list of relations that should be sorted.
- * @returns {array} Returns the modified input relations with added properties
- * totalOverlap and overlapping.
+ * @private
+ * @param {Array<object>} relations The list of relations that should be sorted.
+ * @return {Array<object>} Returns the modified input relations with added
+ * properties `totalOverlap` and `overlapping`.
  */
 var addOverlapToSets = function addOverlapToSets(relations) {
     // Calculate the amount of overlap per set.
@@ -480,6 +486,7 @@ var addOverlapToSets = function addOverlapToSets(relations) {
         // Sum up the amount of overlap for each set.
         .reduce(function (map, relation) {
             var sets = relation.sets;
+
             sets.forEach(function (set, i, arr) {
                 if (!isObject(map[set])) {
                     map[set] = {
@@ -499,6 +506,7 @@ var addOverlapToSets = function addOverlapToSets(relations) {
         // Extend the set with the calculated properties.
         .forEach(function (set) {
             var properties = mapOfIdToProps[set.sets[0]];
+
             extend(set, properties);
         });
 
@@ -508,10 +516,10 @@ var addOverlapToSets = function addOverlapToSets(relations) {
 
 /**
  * Takes two sets and finds the one with the largest total overlap.
- *
+ * @private
  * @param {object} a The first set to compare.
  * @param {object} b The second set to compare.
- * @returns {number} Returns 0 if a and b are equal, <0 if a is greater, >0 if b
+ * @return {number} Returns 0 if a and b are equal, <0 if a is greater, >0 if b
  * is greater.
  */
 var sortByTotalOverlap = function sortByTotalOverlap(a, b) {
@@ -521,10 +529,10 @@ var sortByTotalOverlap = function sortByTotalOverlap(a, b) {
 /**
  * Uses a greedy approach to position all the sets. Works well with a small
  * number of sets, and are in these cases a good choice aesthetically.
- *
- * @param {Array} relations List of the overlap between two or more sets, or the
- * size of a single set.
- * @returns List of circles and their calculated positions.
+ * @private
+ * @param {Array<object>} relations List of the overlap between two or more
+ * sets, or the size of a single set.
+ * @return {Array<object>} List of circles and their calculated positions.
  */
 var layoutGreedyVenn = function layoutGreedyVenn(relations) {
     var positionedSets = [],
@@ -536,8 +544,8 @@ var layoutGreedyVenn = function layoutGreedyVenn(relations) {
             return relation.sets.length === 1;
         }).forEach(function (relation) {
             mapOfIdToCircles[relation.sets[0]] = relation.circle = {
-                x: Number.MAX_SAFE_INTEGER,
-                y: Number.MAX_SAFE_INTEGER,
+                x: Number.MAX_VALUE,
+                y: Number.MAX_VALUE,
                 r: Math.sqrt(relation.value / Math.PI)
             };
         });
@@ -545,13 +553,13 @@ var layoutGreedyVenn = function layoutGreedyVenn(relations) {
     /**
      * Takes a set and updates the position, and add the set to the list of
      * positioned sets.
-     *
+     * @private
      * @param {object} set The set to add to its final position.
      * @param {object} coordinates The coordinates to position the set at.
-     * @returns {undefined} Returns undefined.
      */
     var positionSet = function positionSet(set, coordinates) {
         var circle = set.circle;
+
         circle.x = coordinates.x;
         circle.y = coordinates.y;
         positionedSets.push(set);
@@ -566,7 +574,7 @@ var layoutGreedyVenn = function layoutGreedyVenn(relations) {
         .sort(sortByTotalOverlap);
 
     // Position the most overlapped set at 0,0.
-    positionSet(sortedByOverlap.pop(), { x: 0, y: 0 });
+    positionSet(sortedByOverlap.shift(), { x: 0, y: 0 });
 
     var relationsWithTwoSets = relations.filter(function (x) {
         return x.sets.length === 2;
@@ -579,72 +587,75 @@ var layoutGreedyVenn = function layoutGreedyVenn(relations) {
             overlapping = set.overlapping;
 
         var bestPosition = positionedSets
-        .reduce(function (best, positionedSet, i) {
-            var positionedCircle = positionedSet.circle,
-                overlap = overlapping[positionedSet.sets[0]];
+            .reduce(function (best, positionedSet, i) {
+                var positionedCircle = positionedSet.circle,
+                    overlap = overlapping[positionedSet.sets[0]];
 
-            // Calculate the distance between the sets to get the correct
-            // overlap
-            var distance = getDistanceBetweenCirclesByOverlap(
-                radius,
-                positionedCircle.r,
-                overlap
-            );
+                // Calculate the distance between the sets to get the correct
+                // overlap
+                var distance = getDistanceBetweenCirclesByOverlap(
+                    radius,
+                    positionedCircle.r,
+                    overlap
+                );
 
-            // Create a list of possible coordinates calculated from distance.
-            var possibleCoordinates = [
-                { x: positionedCircle.x + distance, y: positionedCircle.y },
-                { x: positionedCircle.x - distance, y: positionedCircle.y },
-                { x: positionedCircle.x, y: positionedCircle.y + distance },
-                { x: positionedCircle.x, y: positionedCircle.y - distance }
-            ];
+                // Create a list of possible coordinates calculated from
+                // distance.
+                var possibleCoordinates = [
+                    { x: positionedCircle.x + distance, y: positionedCircle.y },
+                    { x: positionedCircle.x - distance, y: positionedCircle.y },
+                    { x: positionedCircle.x, y: positionedCircle.y + distance },
+                    { x: positionedCircle.x, y: positionedCircle.y - distance }
+                ];
 
-            // If there are more circles overlapping, then add the intersection
-            // points as possible positions.
-            positionedSets.slice(i + 1).forEach(function (positionedSet2) {
-                var positionedCircle2 = positionedSet2.circle,
-                    overlap2 = overlapping[positionedSet2.sets[0]],
-                    distance2 = getDistanceBetweenCirclesByOverlap(
-                        radius,
-                        positionedCircle2.r,
-                        overlap2
+                // If there are more circles overlapping, then add the
+                // intersection points as possible positions.
+                positionedSets.slice(i + 1).forEach(function (positionedSet2) {
+                    var positionedCircle2 = positionedSet2.circle,
+                        overlap2 = overlapping[positionedSet2.sets[0]],
+                        distance2 = getDistanceBetweenCirclesByOverlap(
+                            radius,
+                            positionedCircle2.r,
+                            overlap2
+                        );
+
+                    // Add intersections to list of coordinates.
+                    possibleCoordinates = possibleCoordinates.concat(
+                        getCircleCircleIntersection({
+                            x: positionedCircle.x,
+                            y: positionedCircle.y,
+                            r: distance
+                        }, {
+                            x: positionedCircle2.x,
+                            y: positionedCircle2.y,
+                            r: distance2
+                        })
+                    );
+                });
+
+                // Iterate all suggested coordinates and find the best one.
+                possibleCoordinates.forEach(function (coordinates) {
+                    circle.x = coordinates.x;
+                    circle.y = coordinates.y;
+
+                    // Calculate loss for the suggested coordinates.
+                    var currentLoss = loss(
+                        mapOfIdToCircles, relationsWithTwoSets
                     );
 
-                // Add intersections to list of coordinates.
-                possibleCoordinates = possibleCoordinates.concat(
-                    getCircleCircleIntersection({
-                        x: positionedCircle.x,
-                        y: positionedCircle.y,
-                        r: distance2
-                    }, {
-                        x: positionedCircle2.x,
-                        y: positionedCircle2.y,
-                        r: distance2
-                    })
-                );
+                    // If the loss is better, then use these new coordinates.
+                    if (currentLoss < best.loss) {
+                        best.loss = currentLoss;
+                        best.coordinates = coordinates;
+                    }
+                });
+
+                // Return resulting coordinates.
+                return best;
+            }, {
+                loss: Number.MAX_VALUE,
+                coordinates: undefined
             });
-
-            // Iterate all suggested coordinates and find the best one.
-            possibleCoordinates.forEach(function (coordinates) {
-                circle.x = coordinates.x;
-                circle.y = coordinates.y;
-
-                // Calculate loss for the suggested coordinates.
-                var currentLoss = loss(mapOfIdToCircles, relationsWithTwoSets);
-
-                // If the loss is better, then use these new coordinates.
-                if (currentLoss < best.loss) {
-                    best.loss = currentLoss;
-                    best.coordinates = coordinates;
-                }
-            });
-
-            // Return resulting coordinates.
-            return best;
-        }, {
-            loss: Number.MAX_SAFE_INTEGER,
-            coordinates: undefined
-        });
 
         // Add the set to its final position.
         positionSet(set, bestPosition.coordinates);
@@ -656,12 +667,11 @@ var layoutGreedyVenn = function layoutGreedyVenn(relations) {
 
 /**
  * Calculates the positions of all the sets in the venn diagram.
- *
- * TODO: Add support for constrained MDS.
- *
- * @param {Array} relations List of the overlap between two or more sets, or the
+ * @private
+ * @todo Add support for constrained MDS.
+ * @param {Array<object>} relations List of the overlap between two or more sets, or the
  * size of a single set.
- * @returns List of circles and their calculated positions.
+ * @return {Arrat<object>} List of circles and their calculated positions.
  */
 var layout = function (relations) {
     var mapOfIdToShape = {};
@@ -691,12 +701,14 @@ var layout = function (relations) {
 
 var isValidRelation = function (x) {
     var map = {};
+
     return (
         isObject(x) &&
         (isNumber(x.value) && x.value > -1) &&
         (isArray(x.sets) && x.sets.length > 0) &&
         !x.sets.some(function (set) {
             var invalid = false;
+
             if (!map[set] && isString(set)) {
                 map[set] = true;
             } else {
@@ -712,13 +724,13 @@ var isValidSet = function (x) {
 };
 
 /**
- * Prepares the venn data so that it is usable for the layout function.
- * Filter out sets, or intersections that includes sets, that are missing in the
- * data or has (value < 1).
- * Adds missing relations between sets in the data as value = 0.
- *
- * @param {Array} data The raw input data.
- * @returns {Array} Returns an array of valid venn data.
+ * Prepares the venn data so that it is usable for the layout function. Filter
+ * out sets, or intersections that includes sets, that are missing in the data
+ * or has (value < 1). Adds missing relations between sets in the data as
+ * value = 0.
+ * @private
+ * @param {Array<object>} data The raw input data.
+ * @return {Array<object>} Returns an array of valid venn data.
  */
 var processVennData = function processVennData(data) {
     var d = isArray(data) ? data : [];
@@ -744,6 +756,7 @@ var processVennData = function processVennData(data) {
 
     validSets.reduce(function (combinations, set, i, arr) {
         var remaining = arr.slice(i + 1);
+
         remaining.forEach(function (set2) {
             combinations.push(set + ',' + set2);
         });
@@ -754,6 +767,7 @@ var processVennData = function processVennData(data) {
                 sets: combination.split(','),
                 value: 0
             };
+
             mapOfIdToRelation[combination] = obj;
         }
     });
@@ -763,16 +777,14 @@ var processVennData = function processVennData(data) {
 };
 
 /**
- * getScale - Calculates the proper scale to fit the cloud inside the plotting
- *            area.
- *
- * TODO: add unit test
- *
- * @param  {number} targetWidth  Width of target area.
- * @param  {number} targetHeight Height of target area.
- * @param  {object} field The playing field.
- * @param  {Series} series Series object.
- * @returns {object} Returns the value to scale the playing field up to the size
+ * Calculates the proper scale to fit the cloud inside the plotting area.
+ * @private
+ * @todo add unit test
+ * @param {number} targetWidth  Width of target area.
+ * @param {number} targetHeight Height of target area.
+ * @param {object} field The playing field.
+ * @param {Highcharts.Series} series Series object.
+ * @return {object} Returns the value to scale the playing field up to the size
  * of the target area, and center of x and y.
  */
 var getScale = function getScale(targetWidth, targetHeight, field) {
@@ -792,14 +804,13 @@ var getScale = function getScale(targetWidth, targetHeight, field) {
 };
 
 /**
- * updateFieldBoundaries - If a circle is outside a give field, then the
- * boundaries of the field is adjusted accordingly. Modifies the field object
- * which is passed as the first parameter.
- *
- * NOTE: Copied from wordcloud, can probably be unified.
- *
- * @param  {object} field The bounding box of a playing field.
- * @param  {object} placement The bounding box for a placed point.
+ * If a circle is outside a give field, then the boundaries of the field is
+ * adjusted accordingly. Modifies the field object which is passed as the first
+ * parameter.
+ * @private
+ * @todo NOTE: Copied from wordcloud, can probably be unified.
+ * @param {object} field The bounding box of a playing field.
+ * @param {object} placement The bounding box for a placed point.
  * @return {object} Returns a modified field object.
  */
 var updateFieldBoundaries = function updateFieldBoundaries(field, circle) {
@@ -831,16 +842,18 @@ var updateFieldBoundaries = function updateFieldBoundaries(field, circle) {
  * them. The venn diagram is a special case of Euler diagrams, which can also
  * be displayed by this series type.
  *
- * @extends plotOptions.scatter
- * @sample {highcharts} highcharts/demo/venn-diagram/ Venn diagram
- * @sample {highcharts} highcharts/demo/euler-diagram/ Euler diagram
- * @excluding connectEnds, connectNulls, cropThreshold, findNearestPointBy,
- *            getExtremesFromAll, label, linecap, lineWidth, linkedTo, marker,
- *            negativeColor, pointInterval, pointIntervalUnit, pointPlacement,
- *            pointStart, softThreshold, stacking, steps, threshold, xAxis,
- *            yAxis, zoneAxis, zones
+ * @sample {highcharts} highcharts/demo/venn-diagram/
+ *         Venn diagram
+ * @sample {highcharts} highcharts/demo/euler-diagram/
+ *         Euler diagram
  *
- * @product highcharts
+ * @extends      plotOptions.scatter
+ * @excluding    connectEnds, connectNulls, cropThreshold, findNearestPointBy,
+ *               getExtremesFromAll, jitter, label, linecap, lineWidth,
+ *               linkedTo, marker, negativeColor, pointInterval,
+ *               pointIntervalUnit, pointPlacement, pointStart, softThreshold,
+ *               stacking, steps, threshold, xAxis, yAxis, zoneAxis, zones
+ * @product      highcharts
  * @optionparent plotOptions.venn
  */
 var vennOptions = {
@@ -851,7 +864,9 @@ var vennOptions = {
     clip: false,
     colorByPoint: true,
     dataLabels: {
+        /** @ignore-option */
         enabled: true,
+        /** @ignore-option */
         formatter: function () {
             return this.point.name;
         }
@@ -880,6 +895,7 @@ var vennSeries = {
     isCartesian: false,
     axisTypes: [],
     directTouch: true,
+    pointArrayMap: ['value'],
     translate: function () {
 
         var chart = this.chart;
@@ -898,13 +914,14 @@ var vennSeries = {
 
         // Calculate the scale, and center of the plot area.
         var field = Object.keys(mapOfIdToShape)
-            .filter(function (key) {
-                var shape = mapOfIdToShape[key];
-                return shape && isNumber(shape.r);
-            })
-            .reduce(function (field, key) {
-                return updateFieldBoundaries(field, mapOfIdToShape[key]);
-            }, { top: 0, bottom: 0, left: 0, right: 0 }),
+                .filter(function (key) {
+                    var shape = mapOfIdToShape[key];
+
+                    return shape && isNumber(shape.r);
+                })
+                .reduce(function (field, key) {
+                    return updateFieldBoundaries(field, mapOfIdToShape[key]);
+                }, { top: 0, bottom: 0, left: 0, right: 0 }),
             scaling = getScale(chart.plotWidth, chart.plotHeight, field),
             scale = scaling.scale,
             centerX = scaling.centerX,
@@ -939,7 +956,8 @@ var vennSeries = {
                         }
                         return path.concat(arr);
                     }, [])
-                    .join(' ');
+                        .join(' ');
+
                     shapeArgs = {
                         d: d
                     };
@@ -968,7 +986,7 @@ var vennSeries = {
     },
     /**
      * Draw the graphics for each point.
-     * @returns {undefined}
+     * @private
      */
     drawPoints: function () {
         var series = this,
@@ -983,6 +1001,7 @@ var vennSeries = {
         points.forEach(function (point) {
             var attribs,
                 shapeArgs = point.shapeArgs;
+
             // Add point attribs
             if (!chart.styledMode) {
                 attribs = series.pointAttribs(point, point.state);
@@ -996,17 +1015,16 @@ var vennSeries = {
                 renderer: renderer,
                 shapeType: shapeArgs && shapeArgs.d ? 'path' : 'circle'
             });
-
         });
 
     },
     /**
      * Calculates the style attributes for a point. The attributes can vary
      * depending on the state of the point.
-     *
+     * @private
      * @param {object} point The point which will get the resulting attributes.
      * @param {string} state The state of the point.
-     * @returns {object} Returns the calculated attributes.
+     * @return {object} Returns the calculated attributes.
      */
     pointAttribs: function (point, state) {
         var series = this,
@@ -1031,7 +1049,6 @@ var vennSeries = {
             'dashstyle': options.borderDashStyle
         };
     },
-
     animate: function (init) {
         if (!init) {
             var series = this,
@@ -1039,6 +1056,7 @@ var vennSeries = {
 
             series.points.forEach(function (point) {
                 var args = point.shapeArgs;
+
                 if (point.graphic && args) {
                     var attr = {},
                         animate = {};
@@ -1072,13 +1090,12 @@ var vennSeries = {
             series.animate = null;
         }
     },
-
     utils: {
         addOverlapToSets: addOverlapToSets,
-        binarySearch: binarySearch,
         geometry: geometry,
         geometryCircles: geometryCircles,
         getDistanceBetweenCirclesByOverlap: getDistanceBetweenCirclesByOverlap,
+        layoutGreedyVenn: layoutGreedyVenn,
         loss: loss,
         processVennData: processVennData,
         sortByTotalOverlap: sortByTotalOverlap
@@ -1102,62 +1119,76 @@ var vennPoint = {
  * A `venn` series. If the [type](#series.venn.type) option is
  * not specified, it is inherited from [chart.type](#chart.type).
  *
- * @type {Object}
- * @extends series,plotOptions.venn
+ * @extends   series,plotOptions.venn
  * @excluding connectEnds, connectNulls, cropThreshold, dataParser, dataURL,
  *            findNearestPointBy, getExtremesFromAll, label, linecap, lineWidth,
  *            linkedTo, marker, negativeColor, pointInterval, pointIntervalUnit,
  *            pointPlacement, pointStart, softThreshold, stack, stacking, steps,
  *            threshold, xAxis, yAxis, zoneAxis, zones
- * @product highcharts
+ * @product   highcharts
  * @apioption series.venn
  */
 
 /**
- * @type {Array<Object|Number>}
- * @extends series.scatter.data
+ * @type      {Array<*>}
+ * @extends   series.scatter.data
  * @excluding marker, x, y
- * @product highcharts
+ * @product   highcharts
  * @apioption series.venn.data
  */
 
 /**
-* The name of the point. Used in data labels and tooltip. If name is not defined
-* then it will default to the joined values in [sets](#series.venn.sets).
-*
-* @type {Number}
-* @default undefined
-* @since next
-* @sample {highcharts} highcharts/demo/venn-diagram/ Venn diagram
-* @sample {highcharts} highcharts/demo/euler-diagram/ Euler diagram
-* @product highcharts
-* @apioption series.venn.data.name
-*/
+ * The name of the point. Used in data labels and tooltip. If name is not
+ * defined then it will default to the joined values in
+ * [sets](#series.venn.sets).
+ *
+ * @sample {highcharts} highcharts/demo/venn-diagram/
+ *         Venn diagram
+ * @sample {highcharts} highcharts/demo/euler-diagram/
+ *         Euler diagram
+ *
+ * @type      {number}
+ * @since     7.0.0
+ * @product   highcharts
+ * @apioption series.venn.data.name
+ */
 
 /**
-* The value of the point, resulting in a relative area of the circle, or area of
-* overlap between two sets in the venn or euler diagram.
-*
-* @type {Number}
-* @default undefined
-* @since next
-* @sample {highcharts} highcharts/demo/venn-diagram/ Venn diagram
-* @sample {highcharts} highcharts/demo/euler-diagram/ Euler diagram
-* @product highcharts
-* @apioption series.venn.data.value
-*/
+ * The value of the point, resulting in a relative area of the circle, or area
+ * of overlap between two sets in the venn or euler diagram.
+ *
+ * @sample {highcharts} highcharts/demo/venn-diagram/
+ *         Venn diagram
+ * @sample {highcharts} highcharts/demo/euler-diagram/
+ *         Euler diagram
+ *
+ * @type      {number}
+ * @since     7.0.0
+ * @product   highcharts
+ * @apioption series.venn.data.value
+ */
 
 /**
-* The set or sets the options will be applied to. If a single entry is defined,
-* then it will create a new set. If more than one entry is defined, then it will
-* define the overlap between the sets in the array.
-*
-* @type {Array}
-* @default undefined
-* @since next
-* @sample {highcharts} highcharts/demo/venn-diagram/ Venn diagram
-* @sample {highcharts} highcharts/demo/euler-diagram/ Euler diagram
-* @product highcharts
-* @apioption series.venn.data.sets
-*/
+ * The set or sets the options will be applied to. If a single entry is defined,
+ * then it will create a new set. If more than one entry is defined, then it
+ * will define the overlap between the sets in the array.
+ *
+ * @sample {highcharts} highcharts/demo/venn-diagram/
+ *         Venn diagram
+ * @sample {highcharts} highcharts/demo/euler-diagram/
+ *         Euler diagram
+ *
+ * @type      {Array<string>}
+ * @since     7.0.0
+ * @product   highcharts
+ * @apioption series.venn.data.sets
+ */
+
+/**
+ * @private
+ * @class
+ * @name Highcharts.seriesTypes.venn
+ *
+ * @augments Highcharts.Series
+ */
 seriesType('venn', 'scatter', vennOptions, vennSeries, vennPoint);

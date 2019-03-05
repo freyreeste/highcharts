@@ -1,5 +1,5 @@
 /**
- * (c) 2010-2018 Torstein Honsi
+ * (c) 2010-2019 Torstein Honsi
  *
  * License: www.highcharts.com/license
  */
@@ -22,8 +22,7 @@ var attr = H.attr,
     pInt = H.pInt,
     SVGElement = H.SVGElement,
     SVGRenderer = H.SVGRenderer,
-    win = H.win,
-    wrap = H.wrap;
+    win = H.win;
 
 // Extend SvgElement for useHTML option.
 extend(SVGElement.prototype, /** @lends SVGElement.prototype */ {
@@ -52,19 +51,26 @@ extend(SVGElement.prototype, /** @lends SVGElement.prototype */ {
             textWidth = pick(
                 isSettingWidth && styles.width,
                 undefined
-            );
+            ),
+            doTransform;
 
         if (isSettingWidth) {
             delete styles.width;
             wrapper.textWidth = textWidth;
-            wrapper.htmlUpdateTransform();
+            doTransform = true;
         }
+
         if (styles && styles.textOverflow === 'ellipsis') {
             styles.whiteSpace = 'nowrap';
             styles.overflow = 'hidden';
         }
         wrapper.styles = extend(wrapper.styles, styles);
         css(wrapper.element, styles);
+
+        // Now that all styles are applied, to the transform
+        if (doTransform) {
+            wrapper.htmlUpdateTransform();
+        }
 
         return wrapper;
     },
@@ -147,7 +153,7 @@ extend(SVGElement.prototype, /** @lends SVGElement.prototype */ {
 
         // apply inversion
         if (wrapper.inverted) { // wrapper is a group
-            elem.childNodes.forEach(function (child) {
+            [].forEach.call(elem.childNodes, function (child) {
                 renderer.invertChild(child, elem);
             });
         }
@@ -329,15 +335,15 @@ extend(SVGRenderer.prototype, /** @lends SVGRenderer.prototype */ {
                 // These properties are set as attributes on the SVG group, and
                 // as identical CSS properties on the div. (#3542)
                 ['opacity', 'visibility'].forEach(function (prop) {
-                    wrap(element, prop + 'Setter', function (
-                        proceed,
+                    element[prop + 'Setter'] = function (
                         value,
                         key,
                         elem
                     ) {
-                        proceed.call(this, value, key, elem);
+                        SVGElement.prototype[prop + 'Setter']
+                            .call(this, value, key, elem);
                         style[key] = value;
-                    });
+                    };
                 });
                 element.addedSetters = true;
             },
@@ -348,6 +354,7 @@ extend(SVGRenderer.prototype, /** @lends SVGRenderer.prototype */ {
         wrapper.textSetter = function (value) {
             if (value !== element.innerHTML) {
                 delete this.bBox;
+                delete this.oldTextWidth;
             }
             this.textStr = value;
             element.innerHTML = pick(value, '');
