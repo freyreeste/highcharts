@@ -18,7 +18,7 @@ jobs:
       #- checkout # this is extremely slow as it does as full fetch of the github repo.
       - add_ssh_keys:
           fingerprints:
-            - "a4:10:c6:00:b0:ba:61:1d:17:00:44:0a:79:6e:f7:62"
+            - "2f:bf:e9:fd:50:78:2b:2c:71:fd:9e:a8:b5:bc:bf:62"
       - run:
           name: Avoid hosts unknown for github
           command: echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
