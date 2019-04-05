@@ -5,6 +5,9 @@
 version: 2
 jobs:
   build:
+    branches:
+      only:
+        - feature/circleci-integration
     docker:
       - image: circleci/node:lts-browsers
 
