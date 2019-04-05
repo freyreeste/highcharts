@@ -1,0 +1,43 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:lts-browsers
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+
+    working_directory: ~/repo/highcharts
+
+    steps:
+      #- checkout # this is extremely slow as it does as full fetch of the github repo.
+      - add_ssh_keys:
+          fingerprints:
+            - "a4:10:c6:00:b0:ba:61:1d:17:00:44:0a:79:6e:f7:62"
+      - run:
+          name: Avoid hosts unknown for github
+          command: echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+      - run:
+          name: Clone GitHub repository
+          command: git clone -b ${CIRCLE_BRANCH} --single-branch git@github.com:highcharts/highcharts.git --depth=1 ~/repo/highcharts
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: npm install
+
+      - save_cache:
+          paths:
+            - ~/repo/highcharts/node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      # run tests!
+      - run: npm test
